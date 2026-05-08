@@ -2,8 +2,8 @@ import * as core from "@actions/core";
 import * as exec from "@actions/exec";
 import * as github from "@actions/github";
 import { gzipSync } from "node:zlib";
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import * as path from "node:path";
 
 type CIFenceReport = {
   summary: {
@@ -18,7 +18,7 @@ type CIFenceReport = {
 const outputDirectory = "cifence-results";
 
 async function main(): Promise<void> {
-  const targetPath = resolve(
+  const targetPath = path.resolve(
     process.env.GITHUB_WORKSPACE || process.cwd(),
     core.getInput("path") || ".",
   );
@@ -29,14 +29,14 @@ async function main(): Promise<void> {
   const uploadSarif = getBooleanInput("upload-sarif");
   const token = process.env.GITHUB_TOKEN || "";
 
-  const resultDirectory = resolve(process.cwd(), outputDirectory);
+  const resultDirectory = path.resolve(process.cwd(), outputDirectory);
   await mkdir(resultDirectory, { recursive: true });
 
-  const jsonPath = join(resultDirectory, "cifence.json");
-  const sarifPath = join(resultDirectory, "cifence.sarif");
-  const markdownPath = join(resultDirectory, "cifence.md");
+  const jsonPath = path.join(resultDirectory, "cifence.json");
+  const sarifPath = path.join(resultDirectory, "cifence.sarif");
+  const markdownPath = path.join(resultDirectory, "cifence.md");
 
-  const actionPath = process.env.GITHUB_ACTION_PATH || process.cwd();
+  const actionPath = resolveActionRoot();
   const cli = await resolveCIFenceCLI(actionPath, resultDirectory);
   const args = ["scan", "--path", targetPath, "--mode", mode];
   if (writeJson) {
@@ -118,7 +118,7 @@ async function resolveCIFenceCLI(
   resultDirectory: string,
 ): Promise<{ command: string; args: string[] }> {
   const binaryName = process.platform === "win32" ? "cifence.exe" : "cifence";
-  const bundledBinary = join(
+  const bundledBinary = path.join(
     actionPath,
     "dist",
     "bin",
@@ -126,23 +126,82 @@ async function resolveCIFenceCLI(
     binaryName,
   );
   if (await fileExists(bundledBinary)) {
+    if (process.platform !== "win32") {
+      await chmod(bundledBinary, 0o755);
+    }
     return { command: bundledBinary, args: [] };
   }
 
-  const builtBinary = join(resultDirectory, binaryName);
-  const build = await exec.getExecOutput(
-    "go",
-    ["build", "-trimpath", "-o", builtBinary, "./cmd/cifence"],
-    {
-      cwd: actionPath,
-      ignoreReturnCode: true,
-      silent: true,
-    },
-  );
+  const builtBinary = path.join(resultDirectory, binaryName);
+  const buildArgs = ["build", "-trimpath", "-o", builtBinary, "./cmd/cifence"];
+  const build = await runBuildFallback("go", buildArgs, {
+    cwd: actionPath,
+    ignoreReturnCode: true,
+    silent: true,
+  });
   if (build.exitCode !== 0) {
-    throw new Error("CIFence CLI build failed. Ensure Go is available on the runner.");
+    throw new Error(buildFailureDetails(actionPath, bundledBinary, builtBinary, build));
   }
   return { command: builtBinary, args: [] };
+}
+
+function resolveActionRoot(): string {
+  const envPath = process.env.GITHUB_ACTION_PATH;
+  if (envPath && envPath.trim() !== "") {
+    return envPath;
+  }
+
+  if (__dirname.endsWith(`${path.sep}dist`)) {
+    return path.dirname(__dirname);
+  }
+
+  return __dirname;
+}
+
+async function runBuildFallback(
+  command: string,
+  args: string[],
+  options: exec.ExecOptions,
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  try {
+    return await exec.getExecOutput(command, args, options);
+  } catch (error) {
+    return {
+      exitCode: 127,
+      stdout: "",
+      stderr: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function buildFailureDetails(
+  actionPath: string,
+  bundledBinary: string,
+  builtBinary: string,
+  build: { exitCode: number; stdout: string; stderr: string },
+): string {
+  const details = [
+    "CIFence CLI build failed.",
+    `actionPath: ${actionPath}`,
+    `bundledBinary: ${bundledBinary}`,
+    `builtBinary: ${builtBinary}`,
+    "command: go build -trimpath -o <builtBinary> ./cmd/cifence",
+    `buildExitCode: ${build.exitCode}`,
+    process.env.PATH ? `PATH: ${process.env.PATH}` : "PATH: <empty>",
+    build.stderr.trim() ? `stderr:\n${build.stderr.trim()}` : "",
+    build.stdout.trim() ? `stdout:\n${build.stdout.trim()}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return redactSecrets(details);
+}
+
+function redactSecrets(value: string): string {
+  return value
+    .replace(/\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g, "[REDACTED]")
+    .replace(/\bgithub_pat_[A-Za-z0-9_]+\b/g, "[REDACTED]")
+    .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+\b/gi, "$1[REDACTED]")
+    .replace(/\b(token|authorization|password|secret)=\S+/gi, "$1=[REDACTED]");
 }
 
 async function fileExists(path: string): Promise<boolean> {
