@@ -20,17 +20,21 @@ for (const target of targets) {
   const output = join(outputDir, target.binary);
   mkdirSync(outputDir, { recursive: true });
 
-  const result = spawnSync("go", ["build", "-trimpath", "-o", output, "./cmd/cifence"], {
-    cwd: root,
-    env: {
-      ...process.env,
-      CGO_ENABLED: "0",
-      GOOS: target.goos,
-      GOARCH: target.goarch,
+  const result = spawnSync(
+    "go",
+    ["build", "-trimpath", "-ldflags=-s -w", "-o", output, "./cmd/cifence"],
+    {
+      cwd: root,
+      env: {
+        ...process.env,
+        CGO_ENABLED: "0",
+        GOOS: target.goos,
+        GOARCH: target.goarch,
+      },
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
     },
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
+  );
 
   if (result.status !== 0) {
     process.stderr.write(`failed to build ${target.name}\n`);

@@ -127,7 +127,7 @@ async function resolveCIFenceCLI(
   );
   if (await fileExists(bundledBinary)) {
     if (process.platform !== "win32") {
-      await chmod(bundledBinary, 0o755);
+      await chmod(bundledBinary, 0o755).catch(() => undefined);
     }
     return { command: bundledBinary, args: [] };
   }
@@ -151,7 +151,7 @@ function resolveActionRoot(): string {
     return envPath;
   }
 
-  if (__dirname.endsWith(`${path.sep}dist`)) {
+  if (__dirname.endsWith(`${path.sep}dist`) || __dirname.endsWith(`${path.sep}src`)) {
     return path.dirname(__dirname);
   }
 
@@ -201,7 +201,7 @@ function redactSecrets(value: string): string {
     .replace(/\bgh[pousr]_[A-Za-z0-9_]{20,}\b/g, "[REDACTED]")
     .replace(/\bgithub_pat_[A-Za-z0-9_]+\b/g, "[REDACTED]")
     .replace(/\b(Bearer\s+)[A-Za-z0-9._~+/=-]+\b/gi, "$1[REDACTED]")
-    .replace(/\b(token|authorization|password|secret)=\S+/gi, "$1=[REDACTED]");
+    .replace(/(token|authorization|password|secret)=\S+/gi, "$1=[REDACTED]");
 }
 
 async function fileExists(path: string): Promise<boolean> {
