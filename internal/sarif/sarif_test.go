@@ -28,4 +28,12 @@ func TestSARIFGeneration(t *testing.T) {
 	if parsed["version"] != "2.1.0" {
 		t.Fatalf("unexpected SARIF version: %#v", parsed["version"])
 	}
+	runs := parsed["runs"].([]any)
+	driver := runs[0].(map[string]any)["tool"].(map[string]any)["driver"].(map[string]any)
+	if driver["name"] != "CIFence" {
+		t.Fatalf("unexpected tool name: %#v", driver["name"])
+	}
+	if driver["semanticVersion"] != "0.1.0" {
+		t.Fatalf("unexpected tool version: %#v", driver["semanticVersion"])
+	}
 }
