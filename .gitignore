@@ -34,3 +34,5 @@ repository-sync-plan.json
 dist/*
 !dist/
 !dist/index.js
+!dist/bin/
+!dist/bin/**

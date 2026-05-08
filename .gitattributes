@@ -7,3 +7,4 @@
 *.md text eol=lf
 *.json text eol=lf
 *.sarif text eol=lf
+dist/bin/** binary
