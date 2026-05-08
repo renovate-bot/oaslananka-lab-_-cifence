@@ -27,6 +27,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: ./action
+      - uses: ./.github/actions/foo
+      - uses: ./actions/foo
 `)
 	findings := Analyze(doc)
 	if len(findings) != 0 {
@@ -91,6 +93,30 @@ jobs:
 	findings := Analyze(doc)
 	if len(findings) != 1 || findings[0].RuleID != "CF-ACT-001" {
 		t.Fatalf("expected CF-ACT-001, got %#v", findings)
+	}
+}
+
+func TestFullSHAIsAcceptedAndVersionTagIsUnpinned(t *testing.T) {
+	doc := parseYAML(t, `
+name: Actions
+on: push
+permissions:
+  contents: read
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/setup-go@v6.4.0
+`)
+	findings := Analyze(doc)
+	if len(findings) != 1 || findings[0].RuleID != "CF-ACT-001" {
+		t.Fatalf("expected one unpinned version tag finding, got %#v", findings)
+	}
+	if findings[0].RuleID == "CF-ACT-002" {
+		t.Fatalf("v-prefixed semver tag must not be treated as mutable: %#v", findings)
 	}
 }
 

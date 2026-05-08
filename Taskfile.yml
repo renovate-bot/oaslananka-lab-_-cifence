@@ -37,7 +37,11 @@ tasks:
 
   action:build:
     cmds:
-      - pnpm run build
+      - pnpm run action:build
+
+  smoke:action:
+    cmds:
+      - pnpm run smoke:action
 
   fixtures:
     cmds:
@@ -59,6 +63,7 @@ tasks:
       - task: test
       - task: fixtures
       - task: action:build
+      - task: smoke:action
       - task: security
       - task: build
       - task: release:dry-run

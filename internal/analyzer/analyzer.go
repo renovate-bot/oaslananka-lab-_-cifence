@@ -8,7 +8,7 @@ import (
 	"github.com/oaslananka/cifence/internal/rules"
 )
 
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 func Scan(path string) (githubactions.Report, error) {
 	files, err := parser.DiscoverWorkflows(path)

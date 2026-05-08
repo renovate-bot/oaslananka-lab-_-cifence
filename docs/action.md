@@ -1,6 +1,16 @@
 # GitHub Action
 
-The action wraps the Go CLI and writes report files under `cifence-results/`. It uses a bundled CLI binary when present, otherwise it builds the local CLI once on the runner and executes that binary.
+The action wraps the Go CLI and writes report files under `cifence-results/`. Normal marketplace usage uses a bundled CLI binary for the runner platform and does not require `actions/setup-go`.
+
+Bundled binaries are packaged under:
+
+- `dist/bin/linux-x64/cifence`
+- `dist/bin/linux-arm64/cifence`
+- `dist/bin/darwin-x64/cifence`
+- `dist/bin/darwin-arm64/cifence`
+- `dist/bin/win32-x64/cifence.exe`
+
+The wrapper resolves the downloaded action directory with `GITHUB_ACTION_PATH` when GitHub provides it. When executed from the bundled JavaScript file directly, it derives the repository root from `dist/index.js`. The Go build fallback is reserved for local development and diagnostic recovery.
 
 ## Inputs
 

@@ -12,11 +12,13 @@ Version state comes from:
 - `.release-please-manifest.json`
 - release-please outputs
 
-The bootstrap version was `0.1.0`; the current manifest version is controlled by release-please.
+The bootstrap version was `0.1.0`; the current manifest version is controlled by release-please or by an explicitly validated hotfix release.
 
 ## Manual Version Inputs
 
-Manual version inputs, manual tags, manual GitHub Releases, and manual changelog edits are not part of the release process.
+Published tags are immutable. Do not move, delete, or recreate public release tags. The `v0.1.0` tag is public and must remain unchanged.
+
+Manual hotfix tags and GitHub Releases are allowed only after local validation, organization CI validation, repository sync checks, and release-state checks have passed. Manual release notes must state whether any package registry publish occurred.
 
 ## Artifacts
 

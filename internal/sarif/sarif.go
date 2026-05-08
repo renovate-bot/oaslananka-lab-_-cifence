@@ -23,9 +23,10 @@ type tool struct {
 }
 
 type driver struct {
-	Name           string `json:"name"`
-	InformationURI string `json:"informationUri"`
-	Rules          []rule `json:"rules"`
+	Name            string `json:"name"`
+	SemanticVersion string `json:"semanticVersion"`
+	InformationURI  string `json:"informationUri"`
+	Rules           []rule `json:"rules"`
 }
 
 type rule struct {
@@ -78,9 +79,10 @@ func JSON(report githubactions.Report) ([]byte, error) {
 		Runs: []run{{
 			Tool: tool{
 				Driver: driver{
-					Name:           "CIFence",
-					InformationURI: "https://github.com/oaslananka-lab/cifence",
-					Rules:          sarifRules(),
+					Name:            "CIFence",
+					SemanticVersion: report.Version,
+					InformationURI:  "https://github.com/oaslananka-lab/cifence",
+					Rules:           sarifRules(),
 				},
 			},
 			Results: sarifResults(report.Findings),

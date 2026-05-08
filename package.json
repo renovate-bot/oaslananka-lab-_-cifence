@@ -1,6 +1,6 @@
 {
   "name": "cifence",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "GitHub Action wrapper for CIFence.",
   "engines": {
@@ -10,6 +10,7 @@
   "files": [
     "action.yml",
     "dist/index.js",
+    "dist/bin/**",
     "cmd",
     "internal",
     "go.mod",
@@ -22,8 +23,13 @@
     "format:check": "prettier --check \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
     "lint": "node scripts/validate-action-metadata.mjs && node scripts/validate-fixtures.mjs --schema-only",
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.js",
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --minify --legal-comments=none --outfile=dist/index.js",
+    "binaries": "node scripts/build-binaries.mjs",
+    "action:build": "pnpm run build && pnpm run binaries",
+    "package:action": "pnpm run action:build && pnpm run smoke:action",
+    "smoke:action": "node scripts/smoke-action.mjs",
     "fixtures": "node scripts/validate-fixtures.mjs",
+    "test": "go test ./...",
     "release:dry-run": "node scripts/release-state.mjs",
     "sync:check": "node scripts/sync-repositories.mjs --check"
   },

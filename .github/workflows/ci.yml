@@ -90,7 +90,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          pnpm run build
+          pnpm run action:build
       - name: Fixture validation
         shell: pwsh
         run: |
@@ -101,6 +101,12 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           node scripts/validate-action-metadata.mjs
+      - name: Packaged action smoke
+        if: matrix.os == 'ubuntu-24.04'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run smoke:action
       - name: CLI smoke test
         shell: pwsh
         run: |
@@ -136,3 +142,58 @@ jobs:
           name: cifence-results
           path: cifence-results/
           if-no-files-found: ignore
+
+  packaged-action:
+    if: github.repository == 'oaslananka-lab/cifence' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    name: Packaged Action Without setup-go
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Create consumer fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-fixture/.github/workflows no-go-bin
+          cat > consumer-fixture/.github/workflows/ci.yml <<'YAML'
+          name: Consumer
+          on: push
+          jobs:
+            scan:
+              runs-on: ubuntu-24.04
+              steps:
+                - uses: actions/checkout@v6
+                - uses: ./.github/actions/foo
+                - uses: ./actions/foo
+          YAML
+      - name: Run local packaged action without Go on PATH
+        id: cifence
+        uses: ./
+        env:
+          PATH: ${{ github.workspace }}/no-go-bin
+        with:
+          path: consumer-fixture
+          mode: warn
+          sarif: "true"
+          json: "true"
+          markdown: "true"
+          upload-sarif: "false"
+      - name: Verify action reports and outputs
+        shell: bash
+        env:
+          FINDINGS: ${{ steps.cifence.outputs.findings }}
+          JSON_PATH: ${{ steps.cifence.outputs['json-path'] }}
+          SARIF_PATH: ${{ steps.cifence.outputs['sarif-path'] }}
+        run: |
+          set -euo pipefail
+          test -n "$FINDINGS"
+          test -n "$JSON_PATH"
+          test -n "$SARIF_PATH"
+          test -s cifence-results/cifence.json
+          test -s cifence-results/cifence.sarif
+          test -s cifence-results/cifence.md
