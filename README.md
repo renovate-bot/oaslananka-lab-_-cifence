@@ -9,8 +9,10 @@ GitHub Actions workflows often control releases, credentials, package publishing
 ## Install
 
 ```bash
-go install github.com/oaslananka/cifence/cmd/cifence@latest
+go install github.com/oaslananka/cifence/cmd/cifence@v0.1.1
 ```
+
+Go is only required for local source development. Normal GitHub Action usage runs the bundled CLI binary for the runner platform.
 
 For local development from this repository:
 
@@ -60,8 +62,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@<FULL_SHA>
-      - uses: oaslananka/cifence@<FULL_SHA_OR_VERSION_AFTER_RELEASE>
+      - uses: actions/checkout@<FULL_40_CHARACTER_SHA_FOR_CHECKOUT_V6>
+      - uses: oaslananka/cifence@v0.1.1
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
@@ -91,6 +93,8 @@ SARIF upload is off by default. The action uploads SARIF only when `upload-sarif
 ## Security And Privacy
 
 CIFence does not execute workflow steps, run arbitrary scripts from the scanned repository, require cloud credentials, or upload repository data by default. It parses YAML as untrusted input and reports only the evidence needed to explain each finding.
+
+The GitHub Action resolves its own downloaded action directory before looking for packaged binaries, so a consumer repository does not need to install Go or contain CIFence source code.
 
 ## Current Limitations
 
