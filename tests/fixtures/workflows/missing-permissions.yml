@@ -1,0 +1,15 @@
+name: Missing Permissions
+
+on: pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo ok
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - run: echo ok

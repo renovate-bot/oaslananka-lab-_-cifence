@@ -1,0 +1,35 @@
+{
+  "version": "0.1.0",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 2,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-PERM-001",
+      "severity": "critical",
+      "title": "permissions: write-all is used",
+      "message": "Workflow uses permissions: write-all.",
+      "file": "write-all.yml",
+      "line": 5,
+      "column": 14,
+      "evidence": "permissions: write-all",
+      "remediation": "Replace write-all with explicit least-privilege permissions."
+    },
+    {
+      "rule_id": "CF-PERM-001",
+      "severity": "critical",
+      "title": "permissions: write-all is used",
+      "message": "Job \"dangerous\" uses permissions: write-all.",
+      "file": "write-all.yml",
+      "line": 10,
+      "column": 18,
+      "evidence": "permissions: write-all",
+      "remediation": "Replace write-all with explicit least-privilege permissions."
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+name: Mutable Action Ref
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@main
+      - uses: docker://alpine:latest

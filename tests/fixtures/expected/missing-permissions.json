@@ -1,0 +1,35 @@
+{
+  "version": "0.1.0",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-PERM-002",
+      "severity": "medium",
+      "title": "missing explicit permissions block",
+      "message": "Workflow is missing an explicit permissions block.",
+      "file": "missing-permissions.yml",
+      "line": 1,
+      "column": 1,
+      "evidence": "workflow permissions missing",
+      "remediation": "Add explicit permissions, starting from permissions: contents: read."
+    },
+    {
+      "rule_id": "CF-PERM-002",
+      "severity": "medium",
+      "title": "missing explicit permissions block",
+      "message": "Job \"test\" is missing an explicit permissions block.",
+      "file": "missing-permissions.yml",
+      "line": 6,
+      "column": 3,
+      "evidence": "job \"test\" permissions missing",
+      "remediation": "Add explicit permissions, starting from permissions: contents: read."
+    }
+  ]
+}

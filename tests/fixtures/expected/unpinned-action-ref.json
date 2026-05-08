@@ -1,0 +1,35 @@
+{
+  "version": "0.1.0",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 0,
+    "medium": 2,
+    "low": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-ACT-001",
+      "severity": "medium",
+      "title": "action reference is not pinned to a full commit SHA",
+      "message": "Remote action reference is not pinned to a full commit SHA.",
+      "file": "unpinned-action-ref.yml",
+      "line": 14,
+      "column": 15,
+      "evidence": "actions/checkout@v6",
+      "remediation": "Pin to a full commit SHA."
+    },
+    {
+      "rule_id": "CF-ACT-001",
+      "severity": "medium",
+      "title": "action reference is not pinned to a full commit SHA",
+      "message": "Remote action reference is not pinned to a full commit SHA.",
+      "file": "unpinned-action-ref.yml",
+      "line": 15,
+      "column": 15,
+      "evidence": "actions/setup-go@v6.4.0",
+      "remediation": "Pin to a full commit SHA."
+    }
+  ]
+}

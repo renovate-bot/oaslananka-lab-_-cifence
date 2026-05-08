@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    if: github.repository == 'oaslananka-lab/cifence' && vars.CIFENCE_RELEASE_AUTOMATION_ENABLED == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: write
+      attestations: write
+      id-token: write
+    outputs:
+      release-created: ${{ steps.state.outputs.release_created }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24.14.1
+      - name: Enable pnpm
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.0.8 --activate
+      - name: Install Node dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+      - name: Capture release state before release-please
+        id: before
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          echo "latest_release=$latest" >> "$GITHUB_OUTPUT"
+      - name: Run release-please
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          pnpm dlx release-please@17.6.0 manifest-pr --repo-url="$GITHUB_REPOSITORY" --target-branch=main --token="$GITHUB_TOKEN"
+          pnpm dlx release-please@17.6.0 manifest-release --repo-url="$GITHUB_REPOSITORY" --target-branch=main --token="$GITHUB_TOKEN"
+      - name: Inspect release state
+        id: state
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node scripts/release-state.mjs
+          latest="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName // ""')"
+          if [[ -n "$latest" && "$latest" != "${{ steps.before.outputs.latest_release }}" ]]; then
+            echo "release_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_created=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release-assets:
+    if: github.repository == 'oaslananka-lab/cifence' && vars.CIFENCE_RELEASE_AUTOMATION_ENABLED == 'true' && needs.release-please.outputs.release-created == 'true'
+    needs: release-please
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      attestations: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-version: 1.26.3
+          cache: true
+      - name: Build artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p cifence-results
+          go build -trimpath -o cifence-results/cifence-linux-amd64 ./cmd/cifence
+          (cd cifence-results && sha256sum cifence-linux-amd64 > checksums.txt)
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610
+        with:
+          path: .
+          format: spdx-json
+          output-file: cifence-results/sbom.spdx.json
+      - name: Generate provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        with:
+          subject-path: cifence-results/cifence-linux-amd64
+      - name: Upload release assets
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: release-assets
+          path: cifence-results/
+          if-no-files-found: error

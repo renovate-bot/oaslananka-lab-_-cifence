@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    if: github.repository == 'oaslananka-lab/cifence' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
+    name: Validate (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Setup Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-version: 1.26.3
+          cache: true
+      - name: Setup Node
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: 24.14.1
+      - name: Enable pnpm
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          corepack enable
+          corepack prepare pnpm@11.0.8 --activate
+      - name: Install Node dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm install --frozen-lockfile
+      - name: Install Task
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go install github.com/go-task/task/v3/cmd/task@v3.50.0
+      - name: Format check
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run format:check
+          $unformatted = gofmt -l cmd internal
+          if ($unformatted) {
+            $unformatted
+            exit 1
+          }
+      - name: Lint
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go vet ./...
+          pnpm run lint
+      - name: Typecheck
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run typecheck
+      - name: Test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go test ./...
+      - name: Build CLI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go build ./cmd/cifence
+      - name: Build action wrapper
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run build
+      - name: Fixture validation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run fixtures
+      - name: Action metadata validation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          node scripts/validate-action-metadata.mjs
+      - name: CLI smoke test
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          go run ./cmd/cifence scan --path . --mode enforce --format markdown
+      - name: Action smoke test
+        if: matrix.os == 'ubuntu-24.04'
+        uses: ./
+        with:
+          path: .
+          mode: enforce
+          sarif: "true"
+          json: "true"
+          markdown: "true"
+          upload-sarif: "false"
+      - name: Package content sanity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force cifence-results | Out-Null
+          pnpm pack --pack-destination cifence-results
+      - name: Task CI
+        if: matrix.os == 'ubuntu-24.04'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $task = Join-Path (go env GOPATH) 'bin/task'
+          & $task ci
+      - name: Upload reports
+        if: matrix.os == 'ubuntu-24.04' && hashFiles('cifence-results/**') != ''
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: cifence-results
+          path: cifence-results/
+          if-no-files-found: ignore

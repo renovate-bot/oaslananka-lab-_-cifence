@@ -1,0 +1,65 @@
+version: "3"
+
+tasks:
+  format:
+    cmds:
+      - gofmt -w cmd internal
+      - pnpm run format
+
+  format:check:
+    cmds:
+      - node -e "const {execFileSync}=require('node:child_process'); const out=execFileSync('gofmt',['-l','cmd','internal'],{encoding:'utf8'}); if(out.trim()){process.stderr.write(out); process.exit(1)}"
+      - pnpm run format:check
+
+  lint:
+    cmds:
+      - go vet ./...
+      - pnpm run lint
+      - node -e "require('node:fs').mkdirSync('cifence-results',{recursive:true})"
+      - go run ./cmd/cifence scan --path . --mode enforce --format json --json cifence-results/self.json
+
+  typecheck:
+    cmds:
+      - pnpm run typecheck
+
+  test:
+    cmds:
+      - go test ./...
+
+  security:
+    cmds:
+      - node -e "const {spawnSync}=require('node:child_process'); const checks=[['actionlint',[]],['zizmor',['--offline','--min-severity','low','.github/workflows']],['gitleaks',['detect','--no-git','--redact','--source','.']]]; for (const [cmd,args] of checks){const version=spawnSync(cmd,['--version'],{stdio:'ignore'}); if(version.error&&version.error.code==='ENOENT'){process.stdout.write(cmd + ' not installed; skipped local optional security check\\n'); continue;} const run=spawnSync(cmd,args,{stdio:'inherit'}); if(run.status!==0) process.exit(run.status ?? 1);}"
+
+  build:
+    cmds:
+      - go build ./cmd/cifence
+      - pnpm run build
+
+  action:build:
+    cmds:
+      - pnpm run build
+
+  fixtures:
+    cmds:
+      - pnpm run fixtures
+
+  release:dry-run:
+    cmds:
+      - pnpm run release:dry-run
+
+  sync:check:
+    cmds:
+      - pnpm run sync:check
+
+  ci:
+    cmds:
+      - task: format:check
+      - task: lint
+      - task: typecheck
+      - task: test
+      - task: fixtures
+      - task: action:build
+      - task: security
+      - task: build
+      - task: release:dry-run
+      - task: sync:check

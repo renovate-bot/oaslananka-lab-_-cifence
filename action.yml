@@ -1,0 +1,51 @@
+name: CIFence
+description: Static security analyzer and policy engine for GitHub Actions workflows.
+author: oaslananka
+branding:
+  icon: shield
+  color: blue
+inputs:
+  path:
+    description: Repository or workflow path to scan.
+    required: false
+    default: .
+  mode:
+    description: warn exits successfully with findings; enforce fails on high or critical findings.
+    required: false
+    default: warn
+  sarif:
+    description: Write a SARIF report.
+    required: false
+    default: "true"
+  json:
+    description: Write a JSON report.
+    required: false
+    default: "true"
+  markdown:
+    description: Write a Markdown report.
+    required: false
+    default: "true"
+  upload-sarif:
+    description: Upload SARIF to GitHub code scanning.
+    required: false
+    default: "false"
+outputs:
+  findings:
+    description: Total number of findings.
+  critical:
+    description: Critical finding count.
+  high:
+    description: High finding count.
+  medium:
+    description: Medium finding count.
+  low:
+    description: Low finding count.
+  sarif-path:
+    description: Path to the SARIF report.
+  json-path:
+    description: Path to the JSON report.
+  markdown-path:
+    description: Path to the Markdown report.
+runs:
+  using: node24
+  main: dist/index.js

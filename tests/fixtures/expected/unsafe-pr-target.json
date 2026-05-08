@@ -1,0 +1,24 @@
+{
+  "version": "0.1.0",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 1,
+    "high": 0,
+    "medium": 0,
+    "low": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-TRG-001",
+      "severity": "critical",
+      "title": "pull_request_target checks out untrusted pull request code",
+      "message": "pull_request_target workflow checks out untrusted pull request code.",
+      "file": "unsafe-pr-target.yml",
+      "line": 19,
+      "column": 16,
+      "evidence": "${{ github.event.pull_request.head.sha }}",
+      "remediation": "Avoid pull_request_target for untrusted code. Use pull_request with read-only permissions, or never checkout and execute the untrusted head while secrets/write token are available."
+    }
+  ]
+}

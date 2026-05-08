@@ -1,0 +1,35 @@
+{
+  "version": "0.1.0",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 2,
+    "medium": 0,
+    "low": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-ACT-002",
+      "severity": "high",
+      "title": "mutable action reference is used",
+      "message": "Remote action uses a mutable ref.",
+      "file": "mutable-action-ref.yml",
+      "line": 14,
+      "column": 15,
+      "evidence": "actions/checkout@main",
+      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest."
+    },
+    {
+      "rule_id": "CF-ACT-002",
+      "severity": "high",
+      "title": "mutable action reference is used",
+      "message": "Docker action uses the mutable latest tag.",
+      "file": "mutable-action-ref.yml",
+      "line": 15,
+      "column": 15,
+      "evidence": "docker://alpine:latest",
+      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest."
+    }
+  ]
+}
