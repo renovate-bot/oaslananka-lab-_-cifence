@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/oaslananka/cifence/internal/githubactions"
@@ -200,7 +201,11 @@ func suppressionMatches(suppression Suppression, finding githubactions.Finding) 
 	if suppression.YAMLPath == nil {
 		return false
 	}
-	return *suppression.YAMLPath == finding.YAMLPath && suppression.Evidence == finding.Evidence
+	return *suppression.YAMLPath == finding.YAMLPath && normalizeEvidence(suppression.Evidence) == normalizeEvidence(finding.Evidence)
+}
+
+func normalizeEvidence(value string) string {
+	return strings.Join(strings.Fields(value), " ")
 }
 
 func findDefault(root string) (string, error) {

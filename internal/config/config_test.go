@@ -64,6 +64,10 @@ func TestSuppressionRequiresExactYAMLPathAndEvidence(t *testing.T) {
 	if _, ok, expired := cfg.SuppressionFor(finding, time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)); !ok || expired {
 		t.Fatalf("expected exact suppression match, ok=%v expired=%v", ok, expired)
 	}
+	finding.Evidence = "job \"release\"\nthird-party   action with write token"
+	if _, ok, expired := cfg.SuppressionFor(finding, time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)); !ok || expired {
+		t.Fatalf("expected normalized evidence suppression match, ok=%v expired=%v", ok, expired)
+	}
 }
 
 func TestValidateAllowsExplicitEmptyYAMLPathForFileLevelSuppression(t *testing.T) {
