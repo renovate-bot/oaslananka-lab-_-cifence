@@ -2,6 +2,31 @@
 
 All notable changes after the initial 0.1.0 bootstrap are managed by release-please.
 
+## [0.2.0](https://github.com/oaslananka-lab/cifence/compare/v0.1.1...v0.2.0) (2026-05-09)
+
+
+### Features
+
+* **analyzer:** add policy config and baseline support ([6846327](https://github.com/oaslananka-lab/cifence/commit/684632720563cf3cd7707e70b5d88c3f2f87eee4))
+* **rules:** expand workflow security detections ([f6fd8b7](https://github.com/oaslananka-lab/cifence/commit/f6fd8b7ea46b8f88bed9a7f0afa5436f0e7703ac))
+
+
+### Bug Fixes
+
+* **action:** enforce workspace boundary and versioned packaging ([c727c7c](https://github.com/oaslananka-lab/cifence/commit/c727c7c6c189cdaf24570a95115fb8a20a5cb1d4))
+* **build:** make packaged binaries deterministic ([e1e593a](https://github.com/oaslananka-lab/cifence/commit/e1e593a8efff6a2a4bd09169edb866a49552da9a))
+* **ci:** disable release job caches ([93884f7](https://github.com/oaslananka-lab/cifence/commit/93884f7d562dd61b25bc13d8e82cd6495dde9d45))
+* **format:** exclude release-managed changelog ([21a3c8c](https://github.com/oaslananka-lab/cifence/commit/21a3c8c3ce8a88714fa7e0cfa3ad91a06e115e79))
+* **release:** refresh generated files on release PRs ([45bee02](https://github.com/oaslananka-lab/cifence/commit/45bee02ee8caa652b42a3e6b68ee504aad02f908))
+* **release:** select release PR without pipefail hazards ([96e2e4b](https://github.com/oaslananka-lab/cifence/commit/96e2e4b85a99d41f0d69b4f27486f353dda3c3a5))
+* **rules:** address review gate findings ([a594632](https://github.com/oaslananka-lab/cifence/commit/a5946323ba21dfe05a5d42c0cff27d11cbc09f15))
+* **sarif:** use custom partial fingerprint key ([05525af](https://github.com/oaslananka-lab/cifence/commit/05525af9fb04ee22a00635d26d5346d35a02cd46))
+
+
+### Performance Improvements
+
+* **analyzer:** reuse workflow snippets during enrichment ([08ba172](https://github.com/oaslananka-lab/cifence/commit/08ba17260936846c3e18d190da2b661bd974daed))
+
 ## 0.1.1
 
 Hotfix release.
