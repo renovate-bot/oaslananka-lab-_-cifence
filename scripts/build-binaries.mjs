@@ -55,7 +55,9 @@ for (const target of targets) {
     process.exit(result.status ?? 1);
   }
 
-  if (target.goos !== "windows") {
+  if (target.goos === "windows") {
+    chmodSync(output, 0o644);
+  } else {
     chmodSync(output, 0o755);
   }
 
