@@ -17,7 +17,8 @@ Go is only required for local source development. Normal GitHub Action usage run
 For local development from this repository:
 
 ```bash
-go build ./cmd/cifence
+pnpm install --frozen-lockfile
+pnpm run action:build
 ```
 
 ## CLI Quickstart
@@ -33,11 +34,58 @@ cifence scan --json cifence.json
 cifence scan --markdown cifence.md
 cifence scan --mode warn
 cifence scan --mode enforce
+cifence scan --mode enforce --fail-on medium
+cifence scan --baseline cifence.baseline.json --update-baseline
+cifence scan --baseline cifence.baseline.json --mode enforce
 cifence rules
 cifence version
 ```
 
-`warn` mode exits `0` even with findings. `enforce` mode exits non-zero when high or critical findings are present.
+`warn` mode exits `0` even with findings. `enforce` mode exits non-zero when a non-suppressed, non-baselined finding meets the fail threshold. The default fail threshold is `high`; `--fail-on` or `cifence.yml` can set `low`, `medium`, `high`, or `critical`.
+
+## Policy Configuration
+
+CIFence loads `cifence.yml`, `cifence.yaml`, `.cifence.yml`, or `.cifence.yaml` from the scan root when present.
+
+```yaml
+version: 1
+
+severity:
+  fail_on: high
+
+rules:
+  CF-ACT-001:
+    enabled: true
+    severity: medium
+    allow:
+      - actions/checkout@0123456789abcdef0123456789abcdef01234567
+
+paths:
+  include:
+    - .github/workflows/*.yml
+    - .github/workflows/*.yaml
+  exclude:
+    - .github/workflows/generated-*.yml
+
+suppressions:
+  - rule: CF-ACT-001
+    path: .github/workflows/legacy.yml
+    reason: "Vendor action has no immutable release yet"
+    expires: "2026-07-01"
+```
+
+Suppression `reason` and `expires` are required. Expired suppressions are reported as findings. See `docs/configuration.md` and `schemas/config.schema.json`.
+
+## Baselines
+
+Baselines help existing repositories adopt enforce mode incrementally.
+
+```bash
+cifence scan --baseline cifence.baseline.json --update-baseline
+cifence scan --baseline cifence.baseline.json --mode enforce
+```
+
+Existing baseline findings remain visible in reports but do not fail enforce mode. New findings still fail when they meet the configured threshold. Baseline entries use stable fingerprints derived from rule ID, normalized path, evidence, and YAML path.
 
 ## GitHub Action Quickstart
 
@@ -74,34 +122,28 @@ jobs:
 
 ## Rules
 
-| Rule        | Severity | Purpose                                                                       |
-| ----------- | -------- | ----------------------------------------------------------------------------- |
-| CF-PERM-001 | critical | Detects `permissions: write-all`.                                             |
-| CF-PERM-002 | medium   | Detects missing explicit workflow or job permissions.                         |
-| CF-ACT-001  | medium   | Detects remote actions not pinned to full commit SHAs.                        |
-| CF-ACT-002  | high     | Detects mutable refs and Docker `latest` tags.                                |
-| CF-TRG-001  | critical | Detects unsafe `pull_request_target` checkout of untrusted pull request code. |
+CIFence detects broad token permissions, unpinned actions and reusable workflows, mutable refs, script injection from untrusted GitHub context, unsafe `pull_request_target` behavior, unpinned container images, and inherited reusable-workflow secrets. See `docs/rules.md` for the full rule catalog and remediation guidance.
 
 ## Output Formats
 
-CIFence writes Markdown, JSON, and SARIF 2.1.0. JSON and SARIF are deterministic and contain no timestamps or machine-specific paths in fixture tests.
+CIFence writes Markdown, JSON, and SARIF 2.1.0. JSON, Markdown, and SARIF are deterministic and contain no timestamps or machine-specific absolute paths in golden fixture tests.
 
 ## SARIF And Code Scanning
 
-SARIF upload is off by default. The action uploads SARIF only when `upload-sarif: "true"` is set and a token with `security-events: write` is provided.
+SARIF upload is off by default. The action uploads SARIF only when `upload-sarif: "true"` is set and a token with `security-events: write` is provided. SARIF includes rule metadata, remediation, semantic version, snippets, rule indexes, and partial fingerprints for GitHub Code Scanning.
 
 ## Security And Privacy
 
 CIFence does not execute workflow steps, run arbitrary scripts from the scanned repository, require cloud credentials, or upload repository data by default. It parses YAML as untrusted input and reports only the evidence needed to explain each finding.
 
-The GitHub Action resolves its own downloaded action directory before looking for packaged binaries, so a consumer repository does not need to install Go or contain CIFence source code.
+The GitHub Action resolves its own downloaded action directory before looking for packaged binaries, so a consumer repository does not need to install Go or contain CIFence source code. The action rejects absolute scan paths outside `GITHUB_WORKSPACE` unless `allow-outside-workspace: "true"` is explicitly set.
 
-## Current Limitations
+## Current Scope
 
-- The first release focuses on GitHub Actions workflow files under `.github/workflows`.
-- Policy configuration is reserved for `cifence.yml` in a future release; the first release uses the built-in rule set.
-- It does not rewrite workflows or apply automatic remediation.
-- It does not implement a GitHub App server or hosted dashboard.
+- Repository scans discover workflow files directly under `.github/workflows`.
+- Nested files such as `.github/workflows/sub/example.yml` are not treated as executable GitHub workflows during repository discovery.
+- Explicit file paths can still be scanned for diagnostics.
+- CIFence reports findings only; it does not rewrite workflows or apply automatic remediation.
 
 ## Development
 
@@ -116,7 +158,7 @@ See `docs/development.md` and `docs/testing.md` for the full local workflow.
 
 The personal repository `oaslananka/cifence` is the source and original repository. The organization repository `oaslananka-lab/cifence` mirrors the same Git content and runs CI/CD workflows because organization Actions are the reliable execution environment. Branches, tags, and commits sync through Git. Issues, pull requests, releases, labels, milestones, and comments require GitHub API based sync and are reported by `scripts/sync-repositories.mjs` before any future write sync is enabled.
 
-Release-please manages version state from Conventional Commit history. Package and container publishing are not enabled.
+Release-please manifest mode manages version state from Conventional Commit history. The organization release workflow creates GitHub Releases only when release-please reports `release_created == true`, then attaches CI-built binaries, checksums, SBOM, and attestations. Package and container publishing are not enabled.
 
 ## Support
 

@@ -18,11 +18,11 @@ The personal repository is the source repository. The organization repository ex
 
 ## Script Behavior
 
-`scripts/sync-repositories.mjs --check` prints a sync plan and writes `repository-sync-plan.json`. It compares Git refs through `git ls-remote` and reports read-only metadata differences through the GitHub CLI when available.
+`scripts/sync-repositories.mjs --check` prints a sync plan. It compares Git refs through `git ls-remote` and reports read-only metadata differences through the GitHub CLI when available.
 
-`scripts/sync-repositories.mjs --apply` can apply safe Git ref updates from the personal source repository to the organization mirror. It does not force-update divergent refs unless `--force` is passed.
+`scripts/sync-repositories.mjs --apply` can apply safe missing Git ref updates from the personal source repository to the organization mirror. It refuses divergent refs because release tags and public branches must not be rewritten.
 
-The workflow `.github/workflows/sync-from-personal.yml` runs only in `oaslananka-lab/cifence`. It never publishes, creates releases, auto-merges, auto-approves, or deletes unknown target refs. Force sync requires the explicit workflow input value `SYNC_PERSONAL_TO_ORG`.
+The workflow `.github/workflows/sync-from-personal.yml` runs only in `oaslananka-lab/cifence`. It never publishes, creates releases, auto-merges, auto-approves, rewrites divergent refs, or deletes unknown target refs.
 
 ## Metadata Sync Blocker
 

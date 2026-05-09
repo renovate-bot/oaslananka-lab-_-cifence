@@ -1,1 +1,11 @@
 * @oaslananka
+
+/.github/workflows/ @oaslananka
+/action.yml @oaslananka
+/src/ @oaslananka
+/cmd/ @oaslananka
+/internal/ @oaslananka
+/scripts/ @oaslananka
+/schemas/ @oaslananka
+/release-please-config.json @oaslananka
+/.release-please-manifest.json @oaslananka

@@ -13,7 +13,7 @@ Allowed automation behavior:
 
 - inspect repository state
 - run local validation
-- create a draft pull request for review
+- create a release pull request through release-please
 - report CI and review-thread status
 - verify personal and organization repository state
 

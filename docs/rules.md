@@ -1,76 +1,183 @@
 # Rules
 
-## CF-PERM-001: permissions: write-all is used
+CIFence rule IDs are stable. Severity defaults can be overridden in `cifence.yml`; remediation text remains attached to JSON, Markdown, and SARIF output.
+
+## Permissions
+
+### CF-PERM-001: permissions: write-all is used
 
 - Severity: critical
-- Detection: workflow-level or job-level `permissions: write-all`
-- Example:
+- Rationale: `write-all` grants broad repository mutation capability to every step in scope.
+- Example: `permissions: write-all`
+- Remediation: replace `write-all` with explicit least-privilege scopes.
 
-```yaml
-permissions: write-all
-```
-
-- Remediation: replace `write-all` with explicit least-privilege permissions.
-- False-positive notes: intended emergency workflows should still use explicit scoped permissions.
-
-## CF-PERM-002: missing explicit permissions block
+### CF-PERM-002: missing explicit permissions block
 
 - Severity: medium
-- Detection: workflows without workflow-level permissions and jobs without job-level permissions.
-- Example:
+- Rationale: implicit token defaults are harder to review and may drift with repository settings.
+- Example: a workflow or job without `permissions`.
+- Remediation: add explicit workflow and job permissions, starting with `contents: read`.
 
-```yaml
-jobs:
-  test:
-    runs-on: ubuntu-24.04
-```
-
-- Remediation: add explicit permissions, starting from `contents: read`.
-- False-positive notes: inherited default token permissions are intentionally reported.
-
-## CF-ACT-001: action reference is not pinned to a full commit SHA
-
-- Severity: medium
-- Detection: remote GitHub Actions references using tags or branches instead of a 40-character commit SHA, and Docker action references without an immutable digest.
-- Example:
-
-```yaml
-- uses: actions/checkout@v6
-- uses: docker://alpine:3.20
-```
-
-- Remediation: pin GitHub actions to a full commit SHA and Docker actions to an immutable digest.
-- False-positive notes: local actions such as `./path/to/action` are ignored.
-
-## CF-ACT-002: mutable action reference is used
+### CF-PERM-003: dangerous write permission on pull request event
 
 - Severity: high
-- Detection: mutable refs such as `main`, `master`, `dev`, `develop`, `trunk`, `latest`, `HEAD`, and Docker `latest` tags.
-- Example:
+- Rationale: PR-like events can be influenced by untrusted contributors.
+- Example: `on: pull_request` with `contents: write`.
+- Remediation: keep PR workflows read-only and move writes into trusted follow-up workflows.
 
-```yaml
-- uses: actions/checkout@main
-- uses: docker://alpine:latest
-```
+### CF-PERM-004: id-token write without trust restriction
 
-- Remediation: pin GitHub actions to full SHAs and Docker images to immutable digests.
-- False-positive notes: this rule supersedes CF-ACT-001 for known mutable refs.
+- Severity: high
+- Rationale: OIDC tokens can authorize cloud or deployment access.
+- Example: `id-token: write` on a job without an environment or trusted branch restriction.
+- Remediation: grant OIDC only in trusted jobs protected by environment or branch policy.
 
-## CF-TRG-001: pull_request_target checks out untrusted pull request code
+### CF-PERM-005: job-level privilege escalation
+
+- Severity: medium
+- Rationale: job permissions that exceed the workflow baseline are easy to miss in review.
+- Example: workflow `contents: read`, job `contents: write`.
+- Remediation: isolate elevated jobs and document why the scope is required.
+
+### CF-PERM-006: write token shared with third-party action
+
+- Severity: high
+- Rationale: a compromised third-party action can use the job token.
+- Example: a job with `contents: write` and a non-`actions/*` remote action.
+- Remediation: split third-party actions into read-only jobs or remove write scopes.
+
+## Actions And Reusable Workflows
+
+### CF-ACT-001: action reference is not pinned to a full commit SHA
+
+- Severity: medium
+- Rationale: tags can be moved and are not immutable supply-chain references.
+- Example: `uses: actions/checkout@v6`
+- Remediation: pin remote actions to a full 40-character commit SHA. Local actions such as `./actions/foo` are ignored.
+
+### CF-ACT-002: mutable action reference is used
+
+- Severity: high
+- Rationale: branch-like refs and Docker `latest` can change without review.
+- Example: `uses: actions/checkout@main` or `uses: docker://alpine:latest`
+- Remediation: pin actions to full SHAs and Docker actions to immutable digests.
+
+### CF-ACT-003: reusable workflow is not pinned to a full commit SHA
+
+- Severity: medium
+- Rationale: remote reusable workflows execute code controlled by another ref.
+- Example: `uses: org/repo/.github/workflows/ci.yml@v1`
+- Remediation: pin remote reusable workflows to full commit SHAs.
+
+### CF-ACT-004: reusable workflow uses a mutable ref
+
+- Severity: high
+- Rationale: branch-like reusable workflow refs can change between runs.
+- Example: `uses: org/repo/.github/workflows/ci.yml@main`
+- Remediation: pin reusable workflows to full commit SHAs.
+
+## Script Injection
+
+### CF-INJ-001: untrusted GitHub context interpolated into run step
+
+- Severity: high
+- Rationale: PR, issue, and comment fields can contain shell metacharacters.
+- Example: `run: echo "${{ github.event.pull_request.title }}"`
+- Remediation: avoid direct shell interpolation; pass values through environment variables and quote safely.
+
+### CF-INJ-002: untrusted context passed into github-script
+
+- Severity: high
+- Rationale: direct expression interpolation can turn event text into JavaScript source.
+- Example: `script: core.info("${{ github.event.pull_request.body }}")`
+- Remediation: read event payload fields from `context.payload` and validate or escape them.
+
+### CF-INJ-003: untrusted context used in workflow data field
+
+- Severity: medium
+- Rationale: cache keys, artifact names, and shell environment fields can affect workflow behavior.
+- Example: `key: ${{ github.head_ref }}`
+- Remediation: use trusted stable identifiers or sanitize untrusted values.
+
+## pull_request_target
+
+### CF-TRG-001: pull_request_target checks out untrusted pull request code
 
 - Severity: critical
-- Detection: `pull_request_target` workflows where checkout is configured with untrusted pull request head refs, head SHAs, or `refs/pull/` values.
-- Example:
+- Rationale: `pull_request_target` runs with base repository trust while PR code is attacker controlled.
+- Example: checkout `ref: ${{ github.event.pull_request.head.sha }}`
+- Remediation: use `pull_request` for untrusted code, or never checkout the untrusted head when secrets or write token are available.
 
-```yaml
-on:
-  pull_request_target:
+### CF-TRG-002: pull_request_target executes shell commands
 
-steps:
-  - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-    with:
-      ref: ${{ github.event.pull_request.head.sha }}
-```
+- Severity: critical
+- Rationale: shell steps in privileged PR-target workflows are high-risk when they touch PR data.
+- Example: `on: pull_request_target` with `run: gh pr checkout`.
+- Remediation: avoid shell execution in `pull_request_target` unless all inputs are trusted and tightly scoped.
 
-- Remediation: use `pull_request` with read-only permissions, or avoid checking out and executing the untrusted head while write token or secrets are available.
-- False-positive notes: safe `pull_request_target` workflows that do not checkout untrusted head code are not reported.
+### CF-TRG-003: pull_request_target uses third-party action
+
+- Severity: high
+- Rationale: third-party action code runs with the privileged workflow token.
+- Example: a `pull_request_target` job using `owner/action@...`.
+- Remediation: use first-party pinned actions or move third-party execution to read-only `pull_request` workflows.
+
+### CF-TRG-004: pull_request_target has write token
+
+- Severity: critical
+- Rationale: a write-capable token on PR-target events increases blast radius.
+- Example: `pull-requests: write` on a `pull_request_target` workflow.
+- Remediation: set PR-target workflows to read-only unless a narrow trusted write is unavoidable.
+
+### CF-TRG-005: pull_request_target uses PR-controlled cache or artifact data
+
+- Severity: high
+- Rationale: PR-controlled cache keys or artifact names can poison privileged workflow state.
+- Example: `key: ${{ github.head_ref }}`
+- Remediation: avoid cache/artifact identifiers derived from untrusted PR data.
+
+## Containers And Secrets
+
+### CF-IMG-001: job container image is not pinned by digest
+
+- Severity: medium
+- Rationale: tags can point to different image contents over time.
+- Example: `container: node:24`
+- Remediation: pin job container images with `@sha256:` digests.
+
+### CF-IMG-002: service container image is not pinned by digest
+
+- Severity: medium
+- Rationale: service images influence test and release behavior.
+- Example: `services.redis.image: redis:7`
+- Remediation: pin service images with `@sha256:` digests.
+
+### CF-IMG-003: container image uses latest tag
+
+- Severity: high
+- Rationale: `latest` is intentionally mutable.
+- Example: `image: redis:latest`
+- Remediation: use a fixed tag and digest.
+
+### CF-SEC-001: reusable workflow inherits all secrets
+
+- Severity: high
+- Rationale: `secrets: inherit` exposes all caller secrets to the reusable workflow boundary.
+- Example: a reusable workflow call with `secrets: inherit`.
+- Remediation: pass only explicit secrets required by the called workflow.
+
+## Governance
+
+### CF-SUP-001: expired suppression
+
+- Severity: high
+- Rationale: suppressions need a review window and an owner-visible reason.
+- Example: a suppression whose `expires` date is in the past.
+- Remediation: remove the suppression or renew it with a current reason and expiry date.
+
+### CF-PARSE-001: workflow YAML could not be parsed
+
+- Severity: high
+- Rationale: unparsable workflow files cannot be analyzed safely.
+- Example: malformed YAML syntax.
+- Remediation: fix the YAML syntax and rerun CIFence.

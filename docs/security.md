@@ -22,9 +22,13 @@ Do not use `pull_request_target` to checkout and run untrusted pull request code
 
 SARIF files are written locally unless upload is explicitly enabled. SARIF upload should be used only in trusted repository workflows with explicit permissions.
 
+## Policy And Baseline Controls
+
+Suppression entries require both a reason and an expiry date. Expired suppressions are reported as findings. Baselines distinguish existing findings from new findings so teams can adopt enforce mode without hiding new regressions.
+
 ## Secure Release Model
 
-Release automation is prepared with release-please and Conventional Commits. Public tags are immutable after publication. The `v0.1.0` tag and release must not be rewritten. Package publishing and container publishing are not part of the release process.
+Release automation uses release-please and Conventional Commits. Public tags are immutable after publication. The `v0.1.0` tag and release must not be rewritten. Package publishing and container publishing are not part of the release process.
 
 ## Repository Sync Token Boundary
 

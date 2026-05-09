@@ -16,6 +16,8 @@ The wrapper resolves the downloaded action directory with `GITHUB_ACTION_PATH` w
 
 - `path`: repository or workflow path, default `.`
 - `mode`: `warn` or `enforce`, default `warn`
+- `fail-on`: fail threshold for enforce mode, default `high`
+- `allow-outside-workspace`: allow absolute paths outside `GITHUB_WORKSPACE`, default `"false"`
 - `sarif`: write SARIF, default `"true"`
 - `json`: write JSON, default `"true"`
 - `markdown`: write Markdown, default `"true"`
@@ -35,3 +37,7 @@ The wrapper resolves the downloaded action directory with `GITHUB_ACTION_PATH` w
 ## Permissions
 
 Scanning needs `contents: read`. SARIF upload needs `security-events: write` and `GITHUB_TOKEN` in the environment.
+
+## Workspace Boundary
+
+By default, the Action resolves `path` inside `GITHUB_WORKSPACE` and rejects absolute paths outside that workspace. Self-hosted runner workflows that intentionally scan outside the checked-out repository must set `allow-outside-workspace: "true"`.
