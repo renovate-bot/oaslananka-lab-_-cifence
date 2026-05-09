@@ -175,7 +175,7 @@ jobs:
             cifence-darwin-arm64 \
             cifence-windows-amd64.exe \
             cifence-sbom.spdx.json \
-            provenance.json \
+            build-manifest.json \
             checksums.txt; do
             if ! grep -Fxq "$name" <<<"$assets"; then
               echo "Missing release asset: $name"

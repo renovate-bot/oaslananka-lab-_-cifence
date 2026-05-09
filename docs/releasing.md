@@ -22,10 +22,11 @@ Each release includes:
 - `cifence-windows-amd64.exe`
 - `checksums.txt`
 - `cifence-sbom.spdx.json`
-- `provenance.json`
+- `build-manifest.json`
 - GitHub artifact attestations for checksums and SBOM
 
 Release assets are built in GitHub Actions only. Local machine artifacts are never uploaded.
+The JSON build manifest is an inventory of built assets; cryptographic provenance is supplied by GitHub artifact attestations.
 
 ## Tag Policy
 

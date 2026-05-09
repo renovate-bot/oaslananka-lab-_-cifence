@@ -5,6 +5,7 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
+  rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
@@ -38,6 +39,7 @@ const binaries = [
   },
 ];
 
+rmSync(assetDir, { recursive: true, force: true });
 mkdirSync(assetDir, { recursive: true });
 
 for (const binary of binaries) {
@@ -48,7 +50,7 @@ for (const binary of binaries) {
 assertFile(join(assetDir, "cifence-sbom.spdx.json"));
 
 const subjects = listAssets()
-  .filter((name) => name !== "checksums.txt" && name !== "provenance.json")
+  .filter((name) => name !== "checksums.txt" && name !== "build-manifest.json")
   .map((name) => {
     const path = join(assetDir, name);
     return {
@@ -58,8 +60,8 @@ const subjects = listAssets()
     };
   });
 
-const provenance = {
-  predicateType: "https://slsa.dev/provenance/v1",
+const buildManifest = {
+  manifestType: "https://github.com/oaslananka/cifence/build-manifest/v1",
   builder: "github-actions",
   repository: process.env.GITHUB_REPOSITORY || "oaslananka-lab/cifence",
   ref: process.env.GITHUB_REF || "",
@@ -68,9 +70,13 @@ const provenance = {
   version,
   subjects,
 };
-writeFileSync(join(assetDir, "provenance.json"), `${JSON.stringify(provenance, null, 2)}\n`, {
-  mode: 0o600,
-});
+writeFileSync(
+  join(assetDir, "build-manifest.json"),
+  `${JSON.stringify(buildManifest, null, 2)}\n`,
+  {
+    mode: 0o600,
+  },
+);
 
 const checksumLines = listAssets()
   .filter((name) => name !== "checksums.txt")
@@ -83,7 +89,7 @@ process.stdout.write("release assets prepared\n");
 function listAssets() {
   return binaries
     .map((binary) => binary.asset)
-    .concat(["cifence-sbom.spdx.json", "provenance.json"]);
+    .concat(["cifence-sbom.spdx.json", "build-manifest.json"]);
 }
 
 function assertFile(path) {
