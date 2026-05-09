@@ -1,0 +1,30 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-PERM-003",
+      "severity": "high",
+      "title": "dangerous write permission on pull request event",
+      "message": "workflow grants contents: write on a pull request-like event.",
+      "file": "granular-write-on-pr.yml",
+      "line": 7,
+      "column": 3,
+      "yaml_path": "permissions.contents",
+      "evidence": "contents: write",
+      "remediation": "Use read-only permissions for pull request workflows and move writes into trusted follow-up workflows.",
+      "fingerprint": "dbf4e9bb851270c322d2cbdcbfd548ac153e247a95ed6c432cfa14e2db8c2cd9",
+      "snippet": "contents: write"
+    }
+  ]
+}

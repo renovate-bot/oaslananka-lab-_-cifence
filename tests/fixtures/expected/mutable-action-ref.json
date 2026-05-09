@@ -1,12 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
     "findings": 2,
     "critical": 0,
     "high": 2,
     "medium": 0,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
     {
@@ -18,7 +21,9 @@
       "line": 14,
       "column": 15,
       "evidence": "actions/checkout@main",
-      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest."
+      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest.",
+      "fingerprint": "21dcfab2eda624ea1d25553480107e87a64e48f57c1f589de0e62f74ad76a1db",
+      "snippet": "- uses: actions/checkout@main"
     },
     {
       "rule_id": "CF-ACT-002",
@@ -29,7 +34,9 @@
       "line": 15,
       "column": 15,
       "evidence": "docker://alpine:latest",
-      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest."
+      "remediation": "Pin GitHub actions to full SHA and Docker images to immutable digest.",
+      "fingerprint": "d8bd77e44dc4136c6d30633cdffa779974cf659a1795c11b0f6e896960c15754",
+      "snippet": "- uses: docker://alpine:latest"
     }
   ]
 }

@@ -1,0 +1,30 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-INJ-002",
+      "severity": "high",
+      "title": "untrusted context passed into github-script",
+      "message": "Untrusted GitHub context is passed into actions/github-script.",
+      "file": "github-script-untrusted-context.yml",
+      "line": 17,
+      "column": 19,
+      "yaml_path": "jobs.*.steps[].with.script",
+      "evidence": "github.event.pull_request.body",
+      "remediation": "Read event payload fields from context in JavaScript and validate or escape before use.",
+      "fingerprint": "25eb07f65c6f70a5b98a9430843a3eff7a1beaa0dc06100e96b61f5e4e40aafd",
+      "snippet": "script: |"
+    }
+  ]
+}

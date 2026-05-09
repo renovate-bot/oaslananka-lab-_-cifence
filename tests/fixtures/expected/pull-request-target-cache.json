@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-INJ-003",
+      "severity": "medium",
+      "title": "untrusted context used in workflow data field",
+      "message": "Untrusted context is used in a cache key or artifact name.",
+      "file": "pull-request-target-cache.yml",
+      "line": 18,
+      "column": 16,
+      "yaml_path": "jobs.*.steps[].with.key",
+      "evidence": "github.head_ref",
+      "remediation": "Use stable trusted identifiers or sanitize untrusted values before using them in workflow control fields.",
+      "fingerprint": "d325d1270b2f42618283c7d67cea3218053e15f66a66eb590ac2cb9139999465",
+      "snippet": "key: ${{ github.head_ref }}"
+    },
+    {
+      "rule_id": "CF-TRG-005",
+      "severity": "high",
+      "title": "pull_request_target uses PR-controlled cache or artifact data",
+      "message": "pull_request_target cache or artifact data uses PR-controlled context.",
+      "file": "pull-request-target-cache.yml",
+      "line": 18,
+      "column": 16,
+      "yaml_path": "jobs.*.steps[].with.key",
+      "evidence": "github.head_ref",
+      "remediation": "Avoid cache or artifact keys derived from untrusted pull request data in privileged workflows.",
+      "fingerprint": "fce2c8ef678419a4ff2bd3ce2494a194135ca68075affa7ee5c91ceb0775959a",
+      "snippet": "key: ${{ github.head_ref }}"
+    }
+  ]
+}

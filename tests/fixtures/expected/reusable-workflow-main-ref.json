@@ -1,0 +1,30 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-ACT-004",
+      "severity": "high",
+      "title": "reusable workflow uses a mutable ref",
+      "message": "Reusable workflow uses a mutable ref.",
+      "file": "reusable-workflow-main-ref.yml",
+      "line": 12,
+      "column": 11,
+      "yaml_path": "jobs.call.uses",
+      "evidence": "owner/reusable/.github/workflows/ci.yml@main",
+      "remediation": "Pin reusable workflows to full commit SHAs.",
+      "fingerprint": "2291f4995bc3fc91655449a73589ce9198e2bf2b5c5455dc90d63b18f48c6ff5",
+      "snippet": "uses: owner/reusable/.github/workflows/ci.yml@main"
+    }
+  ]
+}

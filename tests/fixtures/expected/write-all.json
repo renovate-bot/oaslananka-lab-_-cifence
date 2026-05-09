@@ -1,12 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
-    "findings": 2,
+    "findings": 4,
     "critical": 2,
-    "high": 0,
+    "high": 2,
     "medium": 0,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
     {
@@ -17,8 +20,25 @@
       "file": "write-all.yml",
       "line": 5,
       "column": 14,
+      "yaml_path": "permissions",
       "evidence": "permissions: write-all",
-      "remediation": "Replace write-all with explicit least-privilege permissions."
+      "remediation": "Replace write-all with explicit least-privilege permissions.",
+      "fingerprint": "2298f69268766ce2e953a70a0a4e7d8c4d24964d5450ac2f569e8a01f889bcc2",
+      "snippet": "permissions: write-all"
+    },
+    {
+      "rule_id": "CF-PERM-004",
+      "severity": "high",
+      "title": "id-token write without trust restriction",
+      "message": "Workflow grants id-token: write without a clear trusted branch restriction.",
+      "file": "write-all.yml",
+      "line": 5,
+      "column": 14,
+      "yaml_path": "permissions.id-token",
+      "evidence": "id-token: write",
+      "remediation": "Restrict OIDC use to trusted branches or protected environments and grant id-token only in the job that needs it.",
+      "fingerprint": "f60781a0e78368b7e31ca10b2a8026b1fe6680085ea938065c647f35e2413951",
+      "snippet": "permissions: write-all"
     },
     {
       "rule_id": "CF-PERM-001",
@@ -28,8 +48,25 @@
       "file": "write-all.yml",
       "line": 10,
       "column": 18,
+      "yaml_path": "jobs.dangerous.permissions",
       "evidence": "permissions: write-all",
-      "remediation": "Replace write-all with explicit least-privilege permissions."
+      "remediation": "Replace write-all with explicit least-privilege permissions.",
+      "fingerprint": "f7670081f219d66c50c070539aaaacf6a5508c0854a7a155fa31286bdd29f544",
+      "snippet": "permissions: write-all"
+    },
+    {
+      "rule_id": "CF-PERM-004",
+      "severity": "high",
+      "title": "id-token write without trust restriction",
+      "message": "Job \"dangerous\" grants id-token: write without an environment or trusted branch restriction.",
+      "file": "write-all.yml",
+      "line": 10,
+      "column": 18,
+      "yaml_path": "jobs.dangerous.permissions.id-token",
+      "evidence": "id-token: write",
+      "remediation": "Restrict OIDC use to trusted branches or protected environments and grant id-token only in the job that needs it.",
+      "fingerprint": "ab2b3475a75eee2e7c5991af4882e666c02001c058f6eec81f63cf88f54a39a7",
+      "snippet": "permissions: write-all"
     }
   ]
 }

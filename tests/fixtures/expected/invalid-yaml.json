@@ -1,12 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
     "findings": 1,
     "critical": 0,
     "high": 1,
     "medium": 0,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
     {
@@ -18,7 +21,9 @@
       "line": 1,
       "column": 1,
       "evidence": "yaml: line 9: did not find expected ',' or ']'",
-      "remediation": "Fix the YAML syntax so the workflow can be analyzed."
+      "remediation": "Fix the YAML syntax so the workflow can be analyzed.",
+      "fingerprint": "b32480d6e068bc330f3012eeb608cb354f8aa17db51e34d80720d6573d1b0256",
+      "snippet": "name: Invalid"
     }
   ]
 }

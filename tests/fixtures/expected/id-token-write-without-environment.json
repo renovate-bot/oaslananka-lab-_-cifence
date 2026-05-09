@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-PERM-004",
+      "severity": "high",
+      "title": "id-token write without trust restriction",
+      "message": "Job \"release\" grants id-token: write without an environment or trusted branch restriction.",
+      "file": "id-token-write-without-environment.yml",
+      "line": 11,
+      "column": 7,
+      "yaml_path": "jobs.release.permissions.id-token",
+      "evidence": "id-token: write",
+      "remediation": "Restrict OIDC use to trusted branches or protected environments and grant id-token only in the job that needs it.",
+      "fingerprint": "b83df59f1f292e6c364ce247d2c54d00fbbfe263a017143394eac9ae10fa4110",
+      "snippet": "contents: read"
+    },
+    {
+      "rule_id": "CF-PERM-005",
+      "severity": "medium",
+      "title": "job-level permission escalation",
+      "message": "Job \"release\" grants write permissions beyond the workflow baseline.",
+      "file": "id-token-write-without-environment.yml",
+      "line": 11,
+      "column": 7,
+      "yaml_path": "jobs.release.permissions",
+      "evidence": "job \"release\" permission escalation",
+      "remediation": "Keep the workflow baseline explicit and narrow; grant elevated scopes only to isolated trusted jobs.",
+      "fingerprint": "231505bae7cf87ff78586ddf03ccbaad878846b40b5dda5dfcd1c8f2d842a5fe",
+      "snippet": "contents: read"
+    }
+  ]
+}

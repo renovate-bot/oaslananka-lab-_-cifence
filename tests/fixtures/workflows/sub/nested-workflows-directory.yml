@@ -1,0 +1,11 @@
+name: Nested Workflow Directory
+
+on: push
+
+permissions: write-all
+
+jobs:
+  ignored:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo ignored by repository discovery

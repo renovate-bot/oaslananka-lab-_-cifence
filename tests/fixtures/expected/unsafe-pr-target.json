@@ -1,14 +1,73 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
-    "findings": 1,
-    "critical": 1,
-    "high": 0,
+    "findings": 5,
+    "critical": 3,
+    "high": 2,
     "medium": 0,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
+    {
+      "rule_id": "CF-PERM-003",
+      "severity": "high",
+      "title": "dangerous write permission on pull request event",
+      "message": "workflow grants pull-requests: write on a pull request-like event.",
+      "file": "unsafe-pr-target.yml",
+      "line": 7,
+      "column": 3,
+      "yaml_path": "permissions.pull-requests",
+      "evidence": "pull-requests: write",
+      "remediation": "Use read-only permissions for pull request workflows and move writes into trusted follow-up workflows.",
+      "fingerprint": "8a4529c2f54bf15d6d5f8e9f0e034e4dbef2eb113ea1c85e0750909179293b7f",
+      "snippet": "contents: read"
+    },
+    {
+      "rule_id": "CF-TRG-004",
+      "severity": "critical",
+      "title": "pull_request_target has write token",
+      "message": "pull_request_target workflow grants a dangerous write permission.",
+      "file": "unsafe-pr-target.yml",
+      "line": 7,
+      "column": 3,
+      "yaml_path": "permissions",
+      "evidence": "pull_request_target write token",
+      "remediation": "Set pull_request_target workflows to read-only permissions unless a trusted non-code path requires a narrow write scope.",
+      "fingerprint": "f3a39c3a8bb209c51af751bcac1ebccdc5c9768db6fe94b411f7d401a1467d4b",
+      "snippet": "contents: read"
+    },
+    {
+      "rule_id": "CF-TRG-004",
+      "severity": "critical",
+      "title": "pull_request_target has write token",
+      "message": "pull_request_target job \"inspect\" grants a dangerous write permission.",
+      "file": "unsafe-pr-target.yml",
+      "line": 11,
+      "column": 3,
+      "yaml_path": "jobs.inspect.permissions",
+      "evidence": "pull_request_target job write token",
+      "remediation": "Set pull_request_target workflows to read-only permissions unless a trusted non-code path requires a narrow write scope.",
+      "fingerprint": "c9b86c45a80d179b6db465a756abb2f5eeb3b2f4688efd7eb0f3b698cb7f10d8",
+      "snippet": "inspect:"
+    },
+    {
+      "rule_id": "CF-PERM-003",
+      "severity": "high",
+      "title": "dangerous write permission on pull request event",
+      "message": "job \"inspect\" grants pull-requests: write on a pull request-like event.",
+      "file": "unsafe-pr-target.yml",
+      "line": 14,
+      "column": 7,
+      "yaml_path": "jobs.inspect.permissions.pull-requests",
+      "evidence": "pull-requests: write",
+      "remediation": "Use read-only permissions for pull request workflows and move writes into trusted follow-up workflows.",
+      "fingerprint": "33b8d87dc27d8eaf76747575812e3a096a7fed5e12ab319faf0de4641d9bb399",
+      "snippet": "contents: read"
+    },
     {
       "rule_id": "CF-TRG-001",
       "severity": "critical",
@@ -18,7 +77,9 @@
       "line": 19,
       "column": 16,
       "evidence": "${{ github.event.pull_request.head.sha }}",
-      "remediation": "Avoid pull_request_target for untrusted code. Use pull_request with read-only permissions, or never checkout and execute the untrusted head while secrets/write token are available."
+      "remediation": "Avoid pull_request_target for untrusted code. Use pull_request with read-only permissions, or never checkout and execute the untrusted head while secrets/write token are available.",
+      "fingerprint": "3ab993a237a8e398c46ea6392a48ebbdad5e5978be316e7a5d2d3f49f080a67f",
+      "snippet": "ref: ${{ github.event.pull_request.head.sha }}"
     }
   ]
 }

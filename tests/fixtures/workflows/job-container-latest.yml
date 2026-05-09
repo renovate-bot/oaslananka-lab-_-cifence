@@ -1,0 +1,16 @@
+name: Job Container Latest
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    container:
+      image: node:latest
+    steps:
+      - run: node --version

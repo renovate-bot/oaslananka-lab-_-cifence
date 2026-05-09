@@ -1,12 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
     "findings": 2,
     "critical": 0,
     "high": 0,
     "medium": 2,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
     {
@@ -18,7 +21,9 @@
       "line": 14,
       "column": 15,
       "evidence": "actions/checkout@v6",
-      "remediation": "Pin to a full commit SHA."
+      "remediation": "Pin to a full commit SHA.",
+      "fingerprint": "922aa0805f5b9605ad302dd36ff912c23d967449102c1d3ac0d7d31553b046b1",
+      "snippet": "- uses: actions/checkout@v6"
     },
     {
       "rule_id": "CF-ACT-001",
@@ -29,7 +34,9 @@
       "line": 15,
       "column": 15,
       "evidence": "actions/setup-go@v6.4.0",
-      "remediation": "Pin to a full commit SHA."
+      "remediation": "Pin to a full commit SHA.",
+      "fingerprint": "faf3c603fa625aebff72988ca5dd471d1fd16cc227644c25b16c6ea22087bb39",
+      "snippet": "- uses: actions/setup-go@v6.4.0"
     }
   ]
 }

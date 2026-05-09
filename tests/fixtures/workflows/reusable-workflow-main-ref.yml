@@ -1,0 +1,12 @@
+name: Reusable Workflow Main Ref
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  call:
+    permissions:
+      contents: read
+    uses: owner/reusable/.github/workflows/ci.yml@main

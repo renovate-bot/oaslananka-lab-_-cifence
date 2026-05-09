@@ -1,12 +1,15 @@
 {
-  "version": "0.1.1",
+  "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
     "findings": 2,
     "critical": 0,
     "high": 0,
     "medium": 2,
-    "low": 0
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
   },
   "findings": [
     {
@@ -18,7 +21,9 @@
       "line": 1,
       "column": 1,
       "evidence": "workflow permissions missing",
-      "remediation": "Add explicit permissions, starting from permissions: contents: read."
+      "remediation": "Add explicit permissions, starting from permissions: contents: read.",
+      "fingerprint": "f9be3417346eb6657677f6da3da84cfe1816ed7eef6d492186b7be0d0b7afd05",
+      "snippet": "name: Missing Permissions"
     },
     {
       "rule_id": "CF-PERM-002",
@@ -29,7 +34,9 @@
       "line": 6,
       "column": 3,
       "evidence": "job \"test\" permissions missing",
-      "remediation": "Add explicit permissions, starting from permissions: contents: read."
+      "remediation": "Add explicit permissions, starting from permissions: contents: read.",
+      "fingerprint": "46e41d78cd993333de224c4e2da2996691f9126257094ce413ea0bbfa4f1bc6f",
+      "snippet": "test:"
     }
   ]
 }

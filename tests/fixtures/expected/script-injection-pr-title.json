@@ -1,0 +1,30 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 0,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-INJ-001",
+      "severity": "high",
+      "title": "untrusted GitHub context interpolated into run step",
+      "message": "Untrusted GitHub context is interpolated into a run step.",
+      "file": "script-injection-pr-title.yml",
+      "line": 15,
+      "column": 14,
+      "yaml_path": "jobs.*.steps[].run",
+      "evidence": "github.event.pull_request.title",
+      "remediation": "Pass untrusted values through environment variables and quote them in scripts, or avoid shell execution.",
+      "fingerprint": "40ef932e9e5cd7893521695ce05359bb2b7424126f3b314130b692545d614312",
+      "snippet": "- run: echo \"${{ github.event.pull_request.title }}\""
+    }
+  ]
+}

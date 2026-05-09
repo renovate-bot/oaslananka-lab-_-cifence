@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 1,
+    "high": 1,
+    "medium": 0,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-INJ-001",
+      "severity": "high",
+      "title": "untrusted GitHub context interpolated into run step",
+      "message": "Untrusted GitHub context is interpolated into a run step.",
+      "file": "pull-request-target-run-context.yml",
+      "line": 15,
+      "column": 14,
+      "yaml_path": "jobs.*.steps[].run",
+      "evidence": "github.event.pull_request.title",
+      "remediation": "Pass untrusted values through environment variables and quote them in scripts, or avoid shell execution.",
+      "fingerprint": "9dc9d90f7aabbf318329d955d1701239de4aa619be94ec9edb012afd534e6ed1",
+      "snippet": "- run: echo \"${{ github.event.pull_request.title }}\""
+    },
+    {
+      "rule_id": "CF-TRG-002",
+      "severity": "critical",
+      "title": "pull_request_target executes shell commands",
+      "message": "pull_request_target workflow executes a run step.",
+      "file": "pull-request-target-run-context.yml",
+      "line": 15,
+      "column": 14,
+      "yaml_path": "jobs.*.steps[].run",
+      "evidence": "run step",
+      "remediation": "Avoid executing shell commands in pull_request_target unless the workflow never evaluates untrusted pull request data.",
+      "fingerprint": "15d9dcb75fef445101375e499ae8f306c256186393c60fca79455b4275c7386a",
+      "snippet": "- run: echo \"${{ github.event.pull_request.title }}\""
+    }
+  ]
+}

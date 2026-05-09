@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-IMG-002",
+      "severity": "medium",
+      "title": "service container image is not pinned by digest",
+      "message": "Service container image is not pinned by digest.",
+      "file": "service-container-latest.yml",
+      "line": 15,
+      "column": 16,
+      "yaml_path": "jobs.test.services.redis.image",
+      "evidence": "redis:latest",
+      "remediation": "Pin service images with @sha256 digests.",
+      "fingerprint": "2bcb1bfa62257fe69dcd6e6f3561442a2b9e06ea6f36e69f237868c7d798ac02",
+      "snippet": "image: redis:latest"
+    },
+    {
+      "rule_id": "CF-IMG-003",
+      "severity": "high",
+      "title": "container image uses latest tag",
+      "message": "Service container image uses the mutable latest tag.",
+      "file": "service-container-latest.yml",
+      "line": 15,
+      "column": 16,
+      "yaml_path": "jobs.test.services.redis.image",
+      "evidence": "redis:latest",
+      "remediation": "Use a fixed image tag and digest, never latest.",
+      "fingerprint": "9d843d7cabcedb60e74a1fa561eec1aa06af664644134e8fe0b9a18cb1a3227b",
+      "snippet": "image: redis:latest"
+    }
+  ]
+}

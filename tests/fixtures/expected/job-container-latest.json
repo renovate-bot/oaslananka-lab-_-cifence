@@ -1,0 +1,44 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 2,
+    "critical": 0,
+    "high": 1,
+    "medium": 1,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-IMG-001",
+      "severity": "medium",
+      "title": "job container image is not pinned by digest",
+      "message": "Job container image is not pinned by digest.",
+      "file": "job-container-latest.yml",
+      "line": 14,
+      "column": 14,
+      "yaml_path": "jobs.test.container",
+      "evidence": "node:latest",
+      "remediation": "Pin container images with @sha256 digests.",
+      "fingerprint": "21211da5486cef400825002277cd67c3c4540e47497c6ceacf4318dd508030fe",
+      "snippet": "image: node:latest"
+    },
+    {
+      "rule_id": "CF-IMG-003",
+      "severity": "high",
+      "title": "container image uses latest tag",
+      "message": "Job container image uses the mutable latest tag.",
+      "file": "job-container-latest.yml",
+      "line": 14,
+      "column": 14,
+      "yaml_path": "jobs.test.container",
+      "evidence": "node:latest",
+      "remediation": "Use a fixed image tag and digest, never latest.",
+      "fingerprint": "b11acffbab9c1bc4995d9593464689572f2c9ca7651658fd507f1a9245187f6e",
+      "snippet": "image: node:latest"
+    }
+  ]
+}

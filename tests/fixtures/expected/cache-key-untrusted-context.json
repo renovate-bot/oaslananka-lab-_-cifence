@@ -1,0 +1,30 @@
+{
+  "version": "0.0.0-dev",
+  "summary": {
+    "files_scanned": 1,
+    "findings": 1,
+    "critical": 0,
+    "high": 0,
+    "medium": 1,
+    "low": 0,
+    "suppressed": 0,
+    "baselined": 0,
+    "new": 0
+  },
+  "findings": [
+    {
+      "rule_id": "CF-INJ-003",
+      "severity": "medium",
+      "title": "untrusted context used in workflow data field",
+      "message": "Untrusted context is used in a cache key or artifact name.",
+      "file": "cache-key-untrusted-context.yml",
+      "line": 18,
+      "column": 16,
+      "yaml_path": "jobs.*.steps[].with.key",
+      "evidence": "github.event.issue.title",
+      "remediation": "Use stable trusted identifiers or sanitize untrusted values before using them in workflow control fields.",
+      "fingerprint": "6c9069a93b162cd1bd5df2e1b3bca69b035133b96a0908141f4951a96a907355",
+      "snippet": "key: ${{ github.event.issue.title }}"
+    }
+  ]
+}

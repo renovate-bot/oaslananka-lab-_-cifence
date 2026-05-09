@@ -1,0 +1,15 @@
+name: ID Token Without Environment
+
+on: push
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo release
