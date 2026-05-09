@@ -47,12 +47,13 @@ func ScanWithOptions(path string, options ScanOptions) (githubactions.Report, er
 	for _, file := range files {
 		displayPath := parser.DisplayPath(path, file)
 		doc, err := parser.ParseFile(file, displayPath)
+		snippets := newSnippetIndex(doc.Content)
 		if err != nil {
-			findings = append(findings, enrichFinding(rules.ParseFinding(displayPath, err), doc.Content))
+			findings = append(findings, enrichFindingWithSnippets(rules.ParseFinding(displayPath, err), snippets))
 			continue
 		}
 		for _, finding := range rules.Analyze(doc) {
-			findings = append(findings, enrichFinding(finding, doc.Content))
+			findings = append(findings, enrichFindingWithSnippets(finding, snippets))
 		}
 	}
 
@@ -145,14 +146,18 @@ func expiredSuppressionFinding(base githubactions.Finding, suppression config.Su
 }
 
 func enrichFinding(finding githubactions.Finding, content []byte) githubactions.Finding {
+	return enrichFindingWithSnippets(finding, newSnippetIndex(content))
+}
+
+func enrichFindingWithSnippets(finding githubactions.Finding, snippets snippetIndex) githubactions.Finding {
 	if finding.Line <= 0 {
 		finding.Line = 1
 	}
 	if finding.Column <= 0 {
 		finding.Column = 1
 	}
-	if finding.Snippet == "" && len(content) > 0 {
-		finding.Snippet = snippetForLine(content, finding.Line)
+	if finding.Snippet == "" {
+		finding.Snippet = snippets.forLine(finding.Line)
 	}
 	if finding.Fingerprint == "" {
 		finding.Fingerprint = fingerprint(finding)
@@ -171,8 +176,16 @@ func fingerprint(finding githubactions.Finding) string {
 	return hex.EncodeToString(hash[:])
 }
 
-func snippetForLine(content []byte, line int) string {
-	lines := strings.Split(strings.ReplaceAll(string(content), "\r\n", "\n"), "\n")
+type snippetIndex []string
+
+func newSnippetIndex(content []byte) snippetIndex {
+	if len(content) == 0 {
+		return nil
+	}
+	return strings.Split(strings.ReplaceAll(string(content), "\r\n", "\n"), "\n")
+}
+
+func (lines snippetIndex) forLine(line int) string {
 	if line <= 0 || line > len(lines) {
 		return ""
 	}
