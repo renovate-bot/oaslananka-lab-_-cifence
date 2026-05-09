@@ -120,6 +120,47 @@ jobs:
 	}
 }
 
+func TestJobPermissionsOverrideWorkflowWriteForThirdPartyAction(t *testing.T) {
+	doc := parseYAML(t, `
+name: Override
+on: push
+permissions:
+  contents: write
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: owner/action@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+`)
+	findings := Analyze(doc)
+	for _, finding := range findings {
+		if finding.RuleID == "CF-PERM-006" {
+			t.Fatalf("job-level read permissions should override workflow write permissions: %#v", findings)
+		}
+	}
+}
+
+func TestPinnedReusableWorkflowSecretsInheritIsReported(t *testing.T) {
+	doc := parseYAML(t, `
+name: Reusable
+on: push
+permissions:
+  contents: read
+jobs:
+  call:
+    permissions:
+      contents: read
+    uses: org/repo/.github/workflows/ci.yml@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+    secrets: inherit
+`)
+	findings := Analyze(doc)
+	if len(findings) != 1 || findings[0].RuleID != "CF-SEC-001" {
+		t.Fatalf("expected CF-SEC-001 for pinned reusable workflow secrets inherit, got %#v", findings)
+	}
+}
+
 func parseYAML(t *testing.T, content string) parser.Document {
 	t.Helper()
 	var root yaml.Node

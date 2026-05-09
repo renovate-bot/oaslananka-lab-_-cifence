@@ -136,13 +136,20 @@ func TestExpiredSuppressionReportsFinding(t *testing.T) {
 		t.Fatalf("scan failed: %v", err)
 	}
 	found := false
+	original := false
 	for _, finding := range report.Findings {
 		if finding.RuleID == "CF-SUP-001" {
 			found = true
 		}
+		if finding.RuleID == "CF-PERM-002" {
+			original = true
+		}
 	}
 	if !found {
 		t.Fatal("expected expired suppression finding")
+	}
+	if original {
+		t.Fatal("expired suppression finding should replace the original suppressed finding")
 	}
 }
 

@@ -114,6 +114,7 @@ func applyConfig(findings []githubactions.Finding, cfg config.Config, now time.T
 		if suppression, ok, expired := cfg.SuppressionFor(finding, now); ok {
 			if expired {
 				out = append(out, expiredSuppressionFinding(finding, suppression))
+				continue
 			} else {
 				finding.Suppressed = true
 				finding.SuppressionReason = suppression.Reason

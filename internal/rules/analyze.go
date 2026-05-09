@@ -157,7 +157,11 @@ func permissionsFindings(file string, root *yaml.Node) []githubactions.Finding {
 			message := fmt.Sprintf("Job %q grants write permissions beyond the workflow baseline.", job.Key.Value)
 			findings = append(findings, newFinding("CF-PERM-005", file, jobPermissionsValue, message, fmt.Sprintf("job %q permission escalation", job.Key.Value), fmt.Sprintf("jobs.%s.permissions", job.Key.Value)))
 		}
-		if hasDangerousWrite(jobPermissions, workflowPermissions) && jobHasThirdPartyAction(jobMap) {
+		effectivePermissions := workflowPermissions
+		if hasJobPermissions {
+			effectivePermissions = jobPermissions
+		}
+		if hasDangerousWrite(effectivePermissions) && jobHasThirdPartyAction(jobMap) {
 			message := fmt.Sprintf("Job %q combines write permissions with a third-party action.", job.Key.Value)
 			findings = append(findings, newFinding("CF-PERM-006", file, job.Key, message, fmt.Sprintf("job %q third-party action with write token", job.Key.Value), fmt.Sprintf("jobs.%s", job.Key.Value)))
 		}
@@ -216,6 +220,9 @@ func reusableWorkflowFindings(file string, root *yaml.Node) []githubactions.Find
 		if !ok || isLocalAction(usesValue) || !strings.Contains(usesValue, ".github/workflows/") {
 			continue
 		}
+		if _, secretsNode, ok := lookup(jobMap, "secrets"); ok && isScalarValue(secretsNode, "inherit") {
+			findings = append(findings, newFinding("CF-SEC-001", file, secretsNode, "Reusable workflow inherits all caller secrets.", "secrets: inherit", fmt.Sprintf("jobs.%s.secrets", job.Key.Value)))
+		}
 		action, ref, hasRef := splitActionRef(usesValue)
 		if !hasRef || action == "" {
 			findings = append(findings, newFinding("CF-ACT-003", file, usesNode, "Reusable workflow reference is missing a full commit SHA.", usesValue, fmt.Sprintf("jobs.%s.uses", job.Key.Value)))
@@ -225,9 +232,6 @@ func reusableWorkflowFindings(file string, root *yaml.Node) []githubactions.Find
 			findings = append(findings, newFinding("CF-ACT-004", file, usesNode, "Reusable workflow uses a mutable ref.", usesValue, fmt.Sprintf("jobs.%s.uses", job.Key.Value)))
 		} else {
 			findings = append(findings, newFinding("CF-ACT-003", file, usesNode, "Reusable workflow is not pinned to a full commit SHA.", usesValue, fmt.Sprintf("jobs.%s.uses", job.Key.Value)))
-		}
-		if _, secretsNode, ok := lookup(jobMap, "secrets"); ok && isScalarValue(secretsNode, "inherit") {
-			findings = append(findings, newFinding("CF-SEC-001", file, secretsNode, "Reusable workflow inherits all caller secrets.", "secrets: inherit", fmt.Sprintf("jobs.%s.secrets", job.Key.Value)))
 		}
 	}
 	return findings
