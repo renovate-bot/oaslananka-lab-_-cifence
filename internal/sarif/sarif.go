@@ -96,8 +96,7 @@ type ruleReference struct {
 }
 
 type partialFingerprints struct {
-	PrimaryLocationLineHash string `json:"primaryLocationLineHash,omitempty"`
-	CIFenceFingerprint      string `json:"cifenceFingerprint,omitempty"`
+	CIFenceFingerprint string `json:"cifenceFingerprint,omitempty"`
 }
 
 type resultProperties struct {
@@ -174,8 +173,7 @@ func sarifResults(findings []githubactions.Finding) []result {
 				Message: sarifText{Text: finding.Evidence},
 			}},
 			PartialFingerprints: partialFingerprints{
-				PrimaryLocationLineHash: finding.Fingerprint,
-				CIFenceFingerprint:      finding.Fingerprint,
+				CIFenceFingerprint: finding.Fingerprint,
 			},
 			Properties: resultProperties{Severity: sarifProblemSeverity(finding.Severity)},
 		})
