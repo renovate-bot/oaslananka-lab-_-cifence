@@ -28,6 +28,16 @@ func TestCLIInvalidArguments(t *testing.T) {
 	}
 }
 
+func TestCLIFailOnThreshold(t *testing.T) {
+	fixture := filepath.Join("..", "..", "tests", "fixtures", "workflows", "missing-permissions.yml")
+	if code := run([]string{"scan", fixture, "--mode", "enforce", "--fail-on", "high", "--format", "json"}, &bytes.Buffer{}, &bytes.Buffer{}); code != 0 {
+		t.Fatalf("high threshold should ignore medium findings, got %d", code)
+	}
+	if code := run([]string{"scan", fixture, "--mode", "enforce", "--fail-on", "medium", "--format", "json"}, &bytes.Buffer{}, &bytes.Buffer{}); code == 0 {
+		t.Fatal("medium threshold should fail on medium findings")
+	}
+}
+
 func TestCLIRules(t *testing.T) {
 	var stdout bytes.Buffer
 	if code := run([]string{"rules"}, &stdout, &bytes.Buffer{}); code != 0 {

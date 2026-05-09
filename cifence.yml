@@ -1,0 +1,35 @@
+version: 1
+
+severity:
+  fail_on: high
+
+paths:
+  include:
+    - .github/workflows/*.yml
+    - .github/workflows/*.yaml
+
+suppressions:
+  - rule: CF-PERM-006
+    path: .github/workflows/release.yml
+    reason: "Release automation requires release-please and attestation actions with release-scoped write permissions."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/release.yml
+    reason: "Release jobs intentionally escalate from the read-only workflow baseline only after repository and release guards."
+    expires: "2026-12-31"
+  - rule: CF-PERM-006
+    path: .github/workflows/scorecard.yml
+    reason: "Scorecard uploads SARIF from the maintained OSSF action with explicit security-events and id-token permissions."
+    expires: "2026-12-31"
+  - rule: CF-PERM-003
+    path: .github/workflows/scorecard.yml
+    reason: "Scorecard requires id-token for signed score publication and does not execute repository code."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/scorecard.yml
+    reason: "Scorecard grants only the job-level permissions required for SARIF upload and OIDC."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/sync-from-personal.yml
+    reason: "Manual mirror sync apply job needs contents write and refuses divergent refs."
+    expires: "2026-12-31"

@@ -14,8 +14,9 @@ type logFile struct {
 }
 
 type run struct {
-	Tool    tool     `json:"tool"`
-	Results []result `json:"results"`
+	Tool               tool                         `json:"tool"`
+	OriginalURIBaseIDs map[string]originalURIBaseID `json:"originalUriBaseIds,omitempty"`
+	Results            []result                     `json:"results"`
 }
 
 type tool struct {
@@ -32,6 +33,7 @@ type driver struct {
 type rule struct {
 	ID               string         `json:"id"`
 	Name             string         `json:"name"`
+	HelpURI          string         `json:"helpUri,omitempty"`
 	ShortDescription sarifText      `json:"shortDescription"`
 	FullDescription  sarifText      `json:"fullDescription"`
 	Help             sarifText      `json:"help"`
@@ -40,18 +42,25 @@ type rule struct {
 
 type ruleProperties struct {
 	SecuritySeverity string   `json:"security-severity"`
+	Precision        string   `json:"precision"`
+	Problem          problem  `json:"problem"`
 	Tags             []string `json:"tags"`
 }
 
 type result struct {
-	RuleID    string     `json:"ruleId"`
-	Level     string     `json:"level"`
-	Message   sarifText  `json:"message"`
-	Locations []location `json:"locations"`
+	RuleID              string              `json:"ruleId"`
+	RuleIndex           int                 `json:"ruleIndex"`
+	Rule                ruleReference       `json:"rule"`
+	Level               string              `json:"level"`
+	Message             sarifText           `json:"message"`
+	Locations           []location          `json:"locations"`
+	PartialFingerprints partialFingerprints `json:"partialFingerprints,omitempty"`
+	Properties          resultProperties    `json:"properties,omitempty"`
 }
 
 type location struct {
 	PhysicalLocation physicalLocation `json:"physicalLocation"`
+	Message          sarifText        `json:"message,omitempty"`
 }
 
 type physicalLocation struct {
@@ -64,12 +73,35 @@ type artifactLocation struct {
 }
 
 type region struct {
-	StartLine   int `json:"startLine"`
-	StartColumn int `json:"startColumn"`
+	StartLine   int       `json:"startLine"`
+	StartColumn int       `json:"startColumn"`
+	Snippet     sarifText `json:"snippet,omitempty"`
 }
 
 type sarifText struct {
 	Text string `json:"text"`
+}
+
+type originalURIBaseID struct {
+	URI string `json:"uri"`
+}
+
+type problem struct {
+	Severity string `json:"severity"`
+}
+
+type ruleReference struct {
+	ID    string `json:"id"`
+	Index int    `json:"index"`
+}
+
+type partialFingerprints struct {
+	PrimaryLocationLineHash string `json:"primaryLocationLineHash,omitempty"`
+	CIFenceFingerprint      string `json:"cifenceFingerprint,omitempty"`
+}
+
+type resultProperties struct {
+	Severity string `json:"problem.severity,omitempty"`
 }
 
 func JSON(report githubactions.Report) ([]byte, error) {
@@ -85,6 +117,9 @@ func JSON(report githubactions.Report) ([]byte, error) {
 					Rules:           sarifRules(),
 				},
 			},
+			OriginalURIBaseIDs: map[string]originalURIBaseID{
+				"%SRCROOT%": {URI: "file:///github/workspace/"},
+			},
 			Results: sarifResults(report.Findings),
 		}},
 	}
@@ -98,12 +133,15 @@ func sarifRules() []rule {
 		out = append(out, rule{
 			ID:               definition.ID,
 			Name:             definition.Title,
+			HelpURI:          definition.HelpURI,
 			ShortDescription: sarifText{Text: definition.Title},
 			FullDescription:  sarifText{Text: definition.Description},
 			Help:             sarifText{Text: definition.Remediation},
 			Properties: ruleProperties{
 				SecuritySeverity: sarifSecuritySeverity(definition.Severity),
-				Tags:             []string{"security", "github-actions"},
+				Precision:        precision(definition.Precision),
+				Problem:          problem{Severity: sarifProblemSeverity(definition.Severity)},
+				Tags:             tags(definition.Tags),
 			},
 		})
 	}
@@ -112,20 +150,34 @@ func sarifRules() []rule {
 
 func sarifResults(findings []githubactions.Finding) []result {
 	out := make([]result, 0, len(findings))
+	ruleIndexes := map[string]int{}
+	for index, definition := range rules.Definitions {
+		ruleIndexes[definition.ID] = index
+	}
 	for _, finding := range findings {
+		ruleIndex := ruleIndexes[finding.RuleID]
 		out = append(out, result{
-			RuleID:  finding.RuleID,
-			Level:   sarifLevel(finding.Severity),
-			Message: sarifText{Text: finding.Message},
+			RuleID:    finding.RuleID,
+			RuleIndex: ruleIndex,
+			Rule:      ruleReference{ID: finding.RuleID, Index: ruleIndex},
+			Level:     sarifLevel(finding.Severity),
+			Message:   sarifText{Text: finding.Message},
 			Locations: []location{{
 				PhysicalLocation: physicalLocation{
 					ArtifactLocation: artifactLocation{URI: finding.File},
 					Region: region{
 						StartLine:   finding.Line,
 						StartColumn: finding.Column,
+						Snippet:     sarifText{Text: finding.Snippet},
 					},
 				},
+				Message: sarifText{Text: finding.Evidence},
 			}},
+			PartialFingerprints: partialFingerprints{
+				PrimaryLocationLineHash: finding.Fingerprint,
+				CIFenceFingerprint:      finding.Fingerprint,
+			},
+			Properties: resultProperties{Severity: sarifProblemSeverity(finding.Severity)},
 		})
 	}
 	return out
@@ -153,4 +205,29 @@ func sarifSecuritySeverity(severity githubactions.Severity) string {
 	default:
 		return "2.0"
 	}
+}
+
+func sarifProblemSeverity(severity githubactions.Severity) string {
+	switch severity {
+	case githubactions.SeverityCritical, githubactions.SeverityHigh:
+		return "error"
+	case githubactions.SeverityMedium:
+		return "warning"
+	default:
+		return "recommendation"
+	}
+}
+
+func precision(value string) string {
+	if value == "" {
+		return "medium"
+	}
+	return value
+}
+
+func tags(values []string) []string {
+	if len(values) == 0 {
+		return []string{"security", "github-actions"}
+	}
+	return values
 }

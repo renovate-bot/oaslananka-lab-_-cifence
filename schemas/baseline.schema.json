@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oaslananka/cifence/schemas/baseline.schema.json",
+  "title": "CIFence baseline",
+  "type": "object",
+  "required": ["version", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule_id", "path", "fingerprint", "first_seen", "last_seen"],
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": { "type": "string", "pattern": "^CF-[A-Z]+-[0-9]{3}$" },
+          "path": { "type": "string", "minLength": 1 },
+          "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "first_seen": { "type": "string", "format": "date" },
+          "last_seen": { "type": "string", "format": "date" }
+        }
+      }
+    }
+  }
+}

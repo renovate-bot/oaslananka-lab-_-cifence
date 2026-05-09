@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/oaslananka/cifence/internal/analyzer"
+	"github.com/oaslananka/cifence/internal/config"
+	"github.com/oaslananka/cifence/internal/githubactions"
 	"github.com/oaslananka/cifence/internal/report"
 	"github.com/oaslananka/cifence/internal/rules"
 	"github.com/oaslananka/cifence/internal/sarif"
@@ -54,6 +56,10 @@ func runScan(args []string, stdout io.Writer, stderr io.Writer) int {
 	pathFlag := flags.String("path", ".", "repository or workflow path to scan")
 	formatFlag := flags.String("format", "markdown", "output format: markdown, json, sarif")
 	modeFlag := flags.String("mode", "warn", "execution mode: warn, enforce")
+	failOnFlag := flags.String("fail-on", "", "minimum severity that fails enforce mode: low, medium, high, critical")
+	configPath := flags.String("config", "", "path to cifence.yml policy config")
+	baselinePath := flags.String("baseline", "", "path to CIFence baseline JSON")
+	updateBaseline := flags.Bool("update-baseline", false, "write current findings to the baseline file")
 	jsonPath := flags.String("json", "", "write JSON report to path")
 	sarifPath := flags.String("sarif", "", "write SARIF report to path")
 	markdownPath := flags.String("markdown", "", "write Markdown report to path")
@@ -81,8 +87,31 @@ func runScan(args []string, stdout io.Writer, stderr io.Writer) int {
 		fmt.Fprintf(stderr, "invalid mode %q\n", *modeFlag)
 		return 2
 	}
+	if *updateBaseline && *baselinePath == "" {
+		fmt.Fprintln(stderr, "--update-baseline requires --baseline")
+		return 2
+	}
 
-	result, err := analyzer.Scan(path)
+	cfg, _, err := config.Load(path, *configPath)
+	if err != nil {
+		fmt.Fprintf(stderr, "config failed: %v\n", err)
+		return 1
+	}
+	failOn := cfg.FailOn()
+	if *failOnFlag != "" {
+		if !githubactions.ValidSeverity(*failOnFlag) {
+			fmt.Fprintf(stderr, "invalid fail-on %q\n", *failOnFlag)
+			return 2
+		}
+		failOn = githubactions.Severity(*failOnFlag)
+	}
+
+	result, err := analyzer.ScanWithOptions(path, analyzer.ScanOptions{
+		Config:         cfg,
+		HasConfig:      true,
+		BaselinePath:   *baselinePath,
+		UpdateBaseline: *updateBaseline,
+	})
 	if err != nil {
 		fmt.Fprintf(stderr, "scan failed: %v\n", err)
 		return 1
@@ -122,7 +151,7 @@ func runScan(args []string, stdout io.Writer, stderr io.Writer) int {
 		fmt.Fprint(stdout, markdown)
 	}
 
-	if *modeFlag == "enforce" && analyzer.EnforceFails(result) {
+	if *modeFlag == "enforce" && analyzer.EnforceFailsAt(result, failOn) {
 		return 1
 	}
 	return 0
@@ -137,6 +166,9 @@ func normalizeScanArgs(args []string, stderr io.Writer) ([]string, bool) {
 		"--path":     {},
 		"--format":   {},
 		"--mode":     {},
+		"--fail-on":  {},
+		"--config":   {},
+		"--baseline": {},
 		"--json":     {},
 		"--sarif":    {},
 		"--markdown": {},
@@ -180,8 +212,9 @@ func printHelp(writer io.Writer) {
 	fmt.Fprintln(writer, "CIFence")
 	fmt.Fprintln(writer)
 	fmt.Fprintln(writer, "Usage:")
-	fmt.Fprintln(writer, "  cifence scan [path] [--format markdown|json|sarif] [--mode warn|enforce]")
+	fmt.Fprintln(writer, "  cifence scan [path] [--format markdown|json|sarif] [--mode warn|enforce] [--fail-on low|medium|high|critical]")
 	fmt.Fprintln(writer, "  cifence scan --path . --json cifence.json --sarif cifence.sarif --markdown cifence.md")
+	fmt.Fprintln(writer, "  cifence scan --baseline cifence.baseline.json --update-baseline")
 	fmt.Fprintln(writer, "  cifence version")
 	fmt.Fprintln(writer, "  cifence rules")
 	fmt.Fprintln(writer, "  cifence help")

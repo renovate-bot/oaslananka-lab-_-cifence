@@ -18,7 +18,16 @@ type Document struct {
 	Content []byte
 }
 
+type DiscoverOptions struct {
+	Include []string
+	Exclude []string
+}
+
 func DiscoverWorkflows(root string) ([]string, error) {
+	return DiscoverWorkflowsWithOptions(root, DiscoverOptions{})
+}
+
+func DiscoverWorkflowsWithOptions(root string, options DiscoverOptions) ([]string, error) {
 	cleanRoot := filepath.Clean(root)
 	info, err := os.Stat(cleanRoot)
 	if err != nil {
@@ -49,9 +58,12 @@ func DiscoverWorkflows(root string) ([]string, error) {
 			return walkErr
 		}
 		if entry.IsDir() {
+			if path != workflowsDir {
+				return filepath.SkipDir
+			}
 			return nil
 		}
-		if isWorkflowFile(path) {
+		if isWorkflowFile(path) && includedPath(cleanRoot, path, options) {
 			files = append(files, path)
 		}
 		return nil
@@ -95,4 +107,32 @@ func DisplayPath(root string, file string) string {
 func isWorkflowFile(path string) bool {
 	ext := strings.ToLower(filepath.Ext(path))
 	return ext == ".yml" || ext == ".yaml"
+}
+
+func includedPath(root string, path string, options DiscoverOptions) bool {
+	display := DisplayPath(root, path)
+	if len(options.Include) > 0 && !matchesAny(display, options.Include) {
+		return false
+	}
+	if matchesAny(display, options.Exclude) {
+		return false
+	}
+	return true
+}
+
+func matchesAny(path string, patterns []string) bool {
+	path = filepath.ToSlash(path)
+	for _, pattern := range patterns {
+		pattern = filepath.ToSlash(strings.TrimSpace(pattern))
+		if pattern == "" {
+			continue
+		}
+		if ok, _ := filepath.Match(pattern, path); ok {
+			return true
+		}
+		if ok, _ := filepath.Match(strings.TrimPrefix(pattern, "./"), path); ok {
+			return true
+		}
+	}
+	return false
 }

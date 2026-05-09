@@ -66,6 +66,28 @@ func TestDiscoverExplicitWorkflowsDirectory(t *testing.T) {
 	}
 }
 
+func TestDiscoverWorkflowsSkipsNestedDirectories(t *testing.T) {
+	root := t.TempDir()
+	workflows := filepath.Join(root, ".github", "workflows")
+	nested := filepath.Join(workflows, "sub")
+	if err := os.MkdirAll(nested, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(workflows, "workflow.yml"), []byte("name: a\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "ignored.yml"), []byte("name: ignored\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	files, err := DiscoverWorkflows(root)
+	if err != nil {
+		t.Fatalf("discover failed: %v", err)
+	}
+	if len(files) != 1 || filepath.Base(files[0]) != "workflow.yml" {
+		t.Fatalf("nested workflow-like files should not be discovered by repository scan: %#v", files)
+	}
+}
+
 func TestParseInvalidYAML(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "invalid.yml")
 	if err := os.WriteFile(path, []byte("name: [unterminated\n"), 0o600); err != nil {

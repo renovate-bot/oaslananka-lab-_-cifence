@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oaslananka/cifence/schemas/config.schema.json",
+  "title": "CIFence policy config",
+  "type": "object",
+  "required": ["version"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "severity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "fail_on": { "enum": ["low", "medium", "high", "critical"] }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled": { "type": "boolean" },
+          "severity": { "enum": ["low", "medium", "high", "critical"] },
+          "allow": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          }
+        }
+      }
+    },
+    "paths": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "suppressions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rule", "path", "reason", "expires"],
+        "additionalProperties": false,
+        "properties": {
+          "rule": { "type": "string", "pattern": "^CF-[A-Z]+-[0-9]{3}$" },
+          "path": { "type": "string", "minLength": 1 },
+          "reason": { "type": "string", "minLength": 1 },
+          "expires": { "type": "string", "format": "date" }
+        }
+      }
+    }
+  }
+}

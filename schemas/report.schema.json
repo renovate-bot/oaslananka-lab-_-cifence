@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oaslananka/cifence/schemas/report.schema.json",
+  "title": "CIFence JSON report",
+  "type": "object",
+  "required": ["version", "summary", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "files_scanned",
+        "findings",
+        "critical",
+        "high",
+        "medium",
+        "low",
+        "suppressed",
+        "baselined",
+        "new"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "files_scanned": { "type": "integer", "minimum": 0 },
+        "findings": { "type": "integer", "minimum": 0 },
+        "critical": { "type": "integer", "minimum": 0 },
+        "high": { "type": "integer", "minimum": 0 },
+        "medium": { "type": "integer", "minimum": 0 },
+        "low": { "type": "integer", "minimum": 0 },
+        "suppressed": { "type": "integer", "minimum": 0 },
+        "baselined": { "type": "integer", "minimum": 0 },
+        "new": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "rule_id",
+          "severity",
+          "title",
+          "message",
+          "file",
+          "line",
+          "column",
+          "evidence",
+          "remediation",
+          "fingerprint"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "rule_id": { "type": "string", "pattern": "^CF-[A-Z]+-[0-9]{3}$" },
+          "severity": { "enum": ["low", "medium", "high", "critical"] },
+          "title": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "file": { "type": "string", "minLength": 1 },
+          "line": { "type": "integer", "minimum": 1 },
+          "column": { "type": "integer", "minimum": 1 },
+          "yaml_path": { "type": "string" },
+          "evidence": { "type": "string" },
+          "remediation": { "type": "string", "minLength": 1 },
+          "fingerprint": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+          "snippet": { "type": "string" },
+          "suppressed": { "type": "boolean" },
+          "suppression_reason": { "type": "string" },
+          "suppression_expires": { "type": "string", "format": "date" },
+          "baseline_state": { "enum": ["existing", "new"] }
+        }
+      }
+    }
+  }
+}
