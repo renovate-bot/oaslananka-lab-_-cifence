@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 const manifest = JSON.parse(readFileSync(".release-please-manifest.json", "utf8"));
@@ -41,7 +41,6 @@ const state = {
   safe_to_publish: false,
 };
 
-writeFileSync("release-state.json", `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
 process.stdout.write(`${JSON.stringify(state, null, 2)}\n`);
 
 function run(command, args, allowFailure = false) {

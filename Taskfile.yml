@@ -15,8 +15,6 @@ tasks:
     cmds:
       - go vet ./...
       - pnpm run lint
-      - node -e "require('node:fs').mkdirSync('cifence-results',{recursive:true})"
-      - go run ./cmd/cifence scan --path . --mode enforce --format json --json cifence-results/self.json
 
   typecheck:
     cmds:
@@ -26,13 +24,21 @@ tasks:
     cmds:
       - go test ./...
 
+  fuzz:
+    cmds:
+      - pnpm run fuzz
+
+  schemas:
+    cmds:
+      - pnpm run schemas
+
   security:
     cmds:
-      - node -e "const {spawnSync}=require('node:child_process'); const checks=[['actionlint',[]],['zizmor',['--offline','--min-severity','low','.github/workflows']],['gitleaks',['detect','--no-git','--redact','--source','.']]]; for (const [cmd,args] of checks){const version=spawnSync(cmd,['--version'],{stdio:'ignore'}); if(version.error&&version.error.code==='ENOENT'){process.stdout.write(cmd + ' not installed; skipped local optional security check\\n'); continue;} const run=spawnSync(cmd,args,{stdio:'inherit'}); if(run.status!==0) process.exit(run.status ?? 1);}"
+      - pnpm run security
 
   build:
     cmds:
-      - go build ./cmd/cifence
+      - pnpm run binaries
       - pnpm run build
 
   action:build:
@@ -42,6 +48,10 @@ tasks:
   smoke:action:
     cmds:
       - pnpm run smoke:action
+
+  dist:fresh:
+    cmds:
+      - pnpm run dist:fresh
 
   fixtures:
     cmds:
@@ -61,9 +71,12 @@ tasks:
       - task: lint
       - task: typecheck
       - task: test
+      - task: fuzz
       - task: fixtures
+      - task: schemas
       - task: action:build
       - task: smoke:action
+      - task: dist:fresh
       - task: security
       - task: build
       - task: release:dry-run

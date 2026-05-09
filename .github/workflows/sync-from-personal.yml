@@ -8,11 +8,6 @@ on:
         required: false
         type: boolean
         default: false
-      SYNC_PERSONAL_TO_ORG:
-        description: Enter SYNC_PERSONAL_TO_ORG to allow force-updating divergent Git refs.
-        required: false
-        type: string
-        default: ""
   schedule:
     - cron: "17 3 * * *"
 
@@ -38,7 +33,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: 24.14.1
+          node-version: 24.15.0
       - name: Print sync plan
         shell: bash
         run: |
@@ -60,17 +55,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: 24.14.1
+          node-version: 24.15.0
       - name: Apply Git ref sync
         shell: bash
         env:
-          FORCE_SYNC_APPROVAL: ${{ inputs.SYNC_PERSONAL_TO_ORG }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/oaslananka-lab/cifence.git"
-          args=(--apply)
-          if [[ "${FORCE_SYNC_APPROVAL}" == "SYNC_PERSONAL_TO_ORG" ]]; then
-            args+=(--force)
-          fi
-          node scripts/sync-repositories.mjs "${args[@]}"
+          node scripts/sync-repositories.mjs --apply

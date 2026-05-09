@@ -21,7 +21,7 @@
   "scripts": {
     "format": "prettier --write \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
-    "lint": "node scripts/validate-action-metadata.mjs && node scripts/validate-fixtures.mjs --schema-only",
+    "lint": "node scripts/validate-action-metadata.mjs && node scripts/validate-fixtures.mjs --schema-only && node scripts/validate-schemas.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --minify --legal-comments=none --outfile=dist/index.js",
     "binaries": "node scripts/build-binaries.mjs",
@@ -30,6 +30,10 @@
     "smoke:action": "node scripts/smoke-action.mjs",
     "fixtures": "node scripts/validate-fixtures.mjs",
     "test": "go test ./...",
+    "fuzz": "go test ./internal/parser -run=^$ -fuzz=FuzzParseWorkflow -fuzztime=5s && go test ./internal/rules -run=^$ -fuzz=FuzzAnalyzeWorkflowNoPanic -fuzztime=5s && go test ./internal/rules -run=^$ -fuzz=FuzzActionRefParser -fuzztime=5s && go test ./internal/sarif -run=^$ -fuzz=FuzzSARIFGeneration -fuzztime=5s",
+    "schemas": "node scripts/validate-schemas.mjs",
+    "security": "node scripts/security-check.mjs",
+    "dist:fresh": "node scripts/check-dist-fresh.mjs",
     "release:dry-run": "node scripts/release-state.mjs",
     "sync:check": "node scripts/sync-repositories.mjs --check"
   },
@@ -39,7 +43,9 @@
     "@actions/github": "9.1.1"
   },
   "devDependencies": {
-    "@types/node": "25.6.2",
+    "@types/node": "24.12.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "esbuild": "0.28.0",
     "prettier": "3.8.3",
     "typescript": "6.0.3",

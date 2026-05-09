@@ -18,7 +18,7 @@ jobs:
     if: github.repository == 'oaslananka-lab/cifence' && (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     name: Validate (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 25
+    timeout-minutes: 20
     permissions:
       contents: read
     strategy:
@@ -38,7 +38,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
         with:
-          node-version: 24.14.1
+          node-version: 24.15.0
       - name: Enable pnpm
         shell: pwsh
         run: |
@@ -85,7 +85,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          go build ./cmd/cifence
+          $version = node -p "require('./package.json').version"
+          $name = if ($IsWindows) { 'cifence.exe' } else { 'cifence' }
+          $output = Join-Path $env:RUNNER_TEMP $name
+          go build -trimpath "-ldflags=-s -w -X github.com/oaslananka/cifence/internal/analyzer.Version=$version" -o $output ./cmd/cifence
+          if ((& $output version) -ne $version) {
+            throw 'CLI version does not match package.json'
+          }
       - name: Build action wrapper
         shell: pwsh
         run: |
@@ -96,6 +102,17 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           pnpm run fixtures
+      - name: Schema validation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run schemas
+      - name: Dist freshness
+        if: matrix.os == 'ubuntu-24.04'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pnpm run dist:fresh
       - name: Action metadata validation
         shell: pwsh
         run: |
@@ -111,13 +128,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          go run ./cmd/cifence scan --path . --mode enforce --format markdown
+          go run ./cmd/cifence scan --path . --mode warn --format markdown
       - name: Action smoke test
         if: matrix.os == 'ubuntu-24.04'
         uses: ./
         with:
           path: .
-          mode: enforce
+          mode: warn
           sarif: "true"
           json: "true"
           markdown: "true"
@@ -167,7 +184,7 @@ jobs:
             scan:
               runs-on: ubuntu-24.04
               steps:
-                - uses: actions/checkout@v6
+                - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
                 - uses: ./.github/actions/foo
                 - uses: ./actions/foo
           YAML

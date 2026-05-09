@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
 
 const sourceRepo = process.env.CIFENCE_SOURCE_REPO || "oaslananka/cifence";
 const targetRepo = process.env.CIFENCE_CI_REPO || "oaslananka-lab/cifence";
@@ -9,7 +8,6 @@ const targetUrl = `https://github.com/${targetRepo}.git`;
 const args = new Set(process.argv.slice(2));
 const checkOnly = args.has("--check") || !args.has("--apply");
 const apply = args.has("--apply");
-const force = args.has("--force");
 
 const sourceRefs = listRemoteRefs(sourceUrl);
 const targetRefs = listRemoteRefs(targetUrl);
@@ -20,7 +18,7 @@ const plan = {
   source_repository: sourceRepo,
   target_repository: targetRepo,
   mode: apply ? "apply" : "check",
-  force_enabled: force,
+  force_enabled: false,
   git: gitPlan,
   metadata,
   safe_to_publish: false,
@@ -33,20 +31,19 @@ const plan = {
 };
 
 process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);
-writeFileSync("repository-sync-plan.json", `${JSON.stringify(plan, null, 2)}\n`, { mode: 0o600 });
 
 if (checkOnly) {
   process.exit(0);
 }
 
-if (gitPlan.divergent_refs.length > 0 && !force) {
+if (gitPlan.divergent_refs.length > 0) {
   process.stderr.write(
-    "Ref divergence requires explicit --force. No refs were updated in this run.\n",
+    "Ref divergence detected. No refs were updated because force-push is disabled.\n",
   );
   process.exit(1);
 }
 
-applyGitSync(gitPlan, force);
+applyGitSync(gitPlan);
 
 function listRemoteRefs(url) {
   const output = run("git", ["ls-remote", "--heads", "--tags", url]);
@@ -98,26 +95,25 @@ function buildGitPlan(source, target) {
   };
 }
 
-function applyGitSync(gitPlan, forceSync) {
+function applyGitSync(gitPlan) {
   ensureLocalRemote("cifence-source", sourceUrl);
   runInherited("git", [
     "fetch",
     "--prune",
     "cifence-source",
-    "+refs/heads/*:refs/remotes/cifence-source/*",
+    "refs/heads/*:refs/remotes/cifence-source/*",
   ]);
   runInherited("git", ["fetch", "--tags", "cifence-source"]);
 
-  for (const item of gitPlan.missing_refs.concat(gitPlan.divergent_refs)) {
+  for (const item of gitPlan.missing_refs) {
     if (item.ref.startsWith("refs/heads/")) {
       const branch = item.ref.slice("refs/heads/".length);
       const sourceRef = `refs/remotes/cifence-source/${branch}`;
       const targetRef = `refs/heads/${branch}`;
-      const refspec = `${forceSync ? "+" : ""}${sourceRef}:${targetRef}`;
+      const refspec = `${sourceRef}:${targetRef}`;
       runInherited("git", ["push", "origin", refspec]);
     } else if (item.ref.startsWith("refs/tags/")) {
-      const refspec = `${forceSync ? "+" : ""}${item.ref}:${item.ref}`;
-      runInherited("git", ["push", "origin", refspec]);
+      runInherited("git", ["push", "origin", item.ref]);
     }
   }
 }
