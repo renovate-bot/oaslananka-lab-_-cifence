@@ -139,6 +139,9 @@ func TestExpiredSuppressionReportsFinding(t *testing.T) {
 			Expires:  "2026-01-01",
 		},
 	}
+	if err := config.Validate(cfg); err != nil {
+		t.Fatalf("config validation failed: %v", err)
+	}
 	report, err := ScanWithOptions(filepath.Join("..", "..", "tests", "fixtures", "workflows", "missing-permissions.yml"), ScanOptions{
 		Config:    cfg,
 		HasConfig: true,

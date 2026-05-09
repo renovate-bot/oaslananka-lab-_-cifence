@@ -82,7 +82,13 @@ func ScanWithOptions(path string, options ScanOptions) (githubactions.Report, er
 		if findings[i].Column != findings[j].Column {
 			return findings[i].Column < findings[j].Column
 		}
-		return findings[i].RuleID < findings[j].RuleID
+		if findings[i].RuleID != findings[j].RuleID {
+			return findings[i].RuleID < findings[j].RuleID
+		}
+		if findings[i].YAMLPath != findings[j].YAMLPath {
+			return findings[i].YAMLPath < findings[j].YAMLPath
+		}
+		return findings[i].Evidence < findings[j].Evidence
 	})
 
 	return githubactions.NewReport(Version, len(files), findings), nil

@@ -122,7 +122,13 @@ func Analyze(doc parser.Document) []githubactions.Finding {
 		if findings[i].Column != findings[j].Column {
 			return findings[i].Column < findings[j].Column
 		}
-		return findings[i].RuleID < findings[j].RuleID
+		if findings[i].RuleID != findings[j].RuleID {
+			return findings[i].RuleID < findings[j].RuleID
+		}
+		if findings[i].YAMLPath != findings[j].YAMLPath {
+			return findings[i].YAMLPath < findings[j].YAMLPath
+		}
+		return findings[i].Evidence < findings[j].Evidence
 	})
 	return findings
 }
@@ -391,7 +397,7 @@ func pullRequestTargetFindings(file string, root *yaml.Node) []githubactions.Fin
 	}
 
 	var findings []githubactions.Finding
-	if hasDangerousWrite(permissionSet(mustLookup(root, "permissions")), nil) {
+	if hasDangerousWrite(permissionSet(mustLookup(root, "permissions"))) {
 		findings = append(findings, newFinding("CF-TRG-004", file, mustLookup(root, "permissions"), "pull_request_target workflow grants a dangerous write permission.", "pull_request_target write token", "permissions"))
 	}
 	for _, job := range jobs(root) {
@@ -399,7 +405,7 @@ func pullRequestTargetFindings(file string, root *yaml.Node) []githubactions.Fin
 		if jobMap == nil {
 			continue
 		}
-		if hasDangerousWrite(permissionSet(mustLookup(jobMap, "permissions")), nil) {
+		if hasDangerousWrite(permissionSet(mustLookup(jobMap, "permissions"))) {
 			message := fmt.Sprintf("pull_request_target job %q grants a dangerous write permission.", job.Key.Value)
 			findings = append(findings, newFinding("CF-TRG-004", file, job.Key, message, "pull_request_target job write token", fmt.Sprintf("jobs.%s.permissions", job.Key.Value)))
 		}
@@ -624,7 +630,7 @@ func permissionSet(node *yaml.Node) map[string]string {
 
 func unknownPermissionFindings(file string, node *yaml.Node, permissions map[string]string, label string, yamlPath string) []githubactions.Finding {
 	var findings []githubactions.Finding
-	for scope := range permissions {
+	for _, scope := range sortedPermissionScopes(permissions) {
 		if scope == "*" {
 			continue
 		}
@@ -644,7 +650,8 @@ func dangerousPermissionFindings(file string, node *yaml.Node, permissions map[s
 		findings = append(findings, newFinding(ruleID, file, node, message, label+" write-all", yamlPath))
 		return findings
 	}
-	for scope, value := range permissions {
+	for _, scope := range sortedPermissionScopes(permissions) {
+		value := permissions[scope]
 		if value != "write" {
 			continue
 		}
@@ -675,6 +682,15 @@ func hasDangerousWrite(permissionSets ...map[string]string) bool {
 		}
 	}
 	return false
+}
+
+func sortedPermissionScopes(permissions map[string]string) []string {
+	scopes := make([]string, 0, len(permissions))
+	for scope := range permissions {
+		scopes = append(scopes, scope)
+	}
+	sort.Strings(scopes)
+	return scopes
 }
 
 func escalatesPermissions(workflowPermissions map[string]string, jobPermissions map[string]string) bool {
@@ -915,6 +931,8 @@ func jobDownloadsArtifact(jobMap *yaml.Node) bool {
 	return false
 }
 
+// jobExecutesDownloadedContent is a conservative heuristic for workflow_run jobs that already download artifacts.
+// It may flag benign commands, but that is preferable to missing privileged execution of untrusted artifact content.
 func jobExecutesDownloadedContent(jobMap *yaml.Node) bool {
 	for _, step := range stepsOfJob(jobMap) {
 		_, runNode, ok := lookup(step, "run")
@@ -923,7 +941,6 @@ func jobExecutesDownloadedContent(jobMap *yaml.Node) bool {
 		}
 		runValue, _ := scalarString(runNode)
 		lower := strings.ToLower(runValue)
-		// This intentionally conservative pattern list catches common execution paths after artifact download.
 		for _, pattern := range []string{"bash ", "sh ", "source ", "./", "python ", "node ", "chmod +x"} {
 			if strings.Contains(lower, pattern) {
 				return true

@@ -26,10 +26,11 @@ const threads = await listReviewThreads(owner, name, Number(pullNumber));
 for (const thread of threads) {
   thread.comments.nodes = await listThreadComments(thread.id, thread.comments);
 }
+const botApprovals = await listLatestBotApprovals(owner, name, Number(pullNumber));
 
 const blocking = threads
   .filter((thread) => !thread.isResolved && !thread.isOutdated)
-  .map((thread) => blockingThread(thread))
+  .map((thread) => blockingThread(thread, botApprovals))
   .filter(Boolean);
 
 await writeSummary({ skipped: false, pull_number: pullNumber, blocking });
@@ -69,6 +70,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
               url
               path
               line
+              createdAt
             }
           }
         }
@@ -112,6 +114,7 @@ query($id: ID!, $after: String) {
           url
           path
           line
+          createdAt
         }
       }
     }
@@ -151,7 +154,52 @@ async function graphql(query, variables) {
   return payload;
 }
 
-function blockingThread(thread) {
+async function listLatestBotApprovals(owner, name, number) {
+  const query = `
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
+  repository(owner: $owner, name: $name) {
+    pullRequest(number: $number) {
+      reviews(first: 100, after: $after) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        nodes {
+          state
+          submittedAt
+          author {
+            login
+            __typename
+          }
+        }
+      }
+    }
+  }
+}`;
+  const approvals = new Map();
+  let after = null;
+  for (;;) {
+    const payload = await graphql(query, { owner, name, number, after });
+    const connection = payload.data.repository.pullRequest.reviews;
+    for (const review of connection.nodes) {
+      if (review.state !== "APPROVED" || review.author?.__typename !== "Bot") {
+        continue;
+      }
+      const login = review.author.login;
+      const submittedAt = Date.parse(review.submittedAt);
+      if (!Number.isFinite(submittedAt)) {
+        continue;
+      }
+      approvals.set(login, Math.max(approvals.get(login) ?? 0, submittedAt));
+    }
+    if (!connection.pageInfo.hasNextPage) {
+      return approvals;
+    }
+    after = connection.pageInfo.endCursor;
+  }
+}
+
+function blockingThread(thread, botApprovals) {
   const comments = thread.comments.nodes;
   if (comments.length === 0) {
     return {
@@ -169,9 +217,22 @@ function blockingThread(thread) {
   }
   const botComment = comments.find((comment) => actionableBotComment(comment.body ?? ""));
   if (botComment) {
+    if (hasLaterBotApproval(botComment, botApprovals)) {
+      return null;
+    }
     return summaryItem(thread.id, botComment, "actionable bot comment");
   }
   return null;
+}
+
+function hasLaterBotApproval(comment, botApprovals) {
+  const login = comment.author?.login;
+  const approvalTime = botApprovals.get(login);
+  if (!approvalTime) {
+    return false;
+  }
+  const commentTime = Date.parse(comment.createdAt ?? "");
+  return Number.isFinite(commentTime) && approvalTime >= commentTime;
 }
 
 function summaryItem(threadID, comment, reason) {

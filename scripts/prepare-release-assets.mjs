@@ -39,15 +39,17 @@ const binaries = [
   },
 ];
 
+const sbomPath = join(assetDir, "cifence-sbom.spdx.json");
+assertFile(sbomPath);
+const sbom = readFileSync(sbomPath);
 rmSync(assetDir, { recursive: true, force: true });
 mkdirSync(assetDir, { recursive: true });
+writeFileSync(sbomPath, sbom, { mode: 0o600 });
 
 for (const binary of binaries) {
   assertFile(binary.source);
   copyFileSync(binary.source, join(assetDir, binary.asset));
 }
-
-assertFile(join(assetDir, "cifence-sbom.spdx.json"));
 
 const subjects = listAssets()
   .filter((name) => name !== "checksums.txt" && name !== "build-manifest.json")
