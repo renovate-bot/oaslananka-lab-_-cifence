@@ -2,14 +2,28 @@
   "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
-    "findings": 0,
+    "findings": 1,
     "critical": 0,
-    "high": 0,
+    "high": 1,
     "medium": 0,
     "low": 0,
     "suppressed": 0,
     "baselined": 0,
     "new": 0
   },
-  "findings": []
+  "findings": [
+    {
+      "rule_id": "CF-PARSE-001",
+      "severity": "high",
+      "title": "workflow YAML could not be parsed",
+      "message": "Workflow YAML could not be parsed.",
+      "file": "multi-document-yaml.yml",
+      "line": 1,
+      "column": 1,
+      "evidence": "workflow YAML contains multiple documents",
+      "remediation": "Fix the YAML syntax so the workflow can be analyzed.",
+      "fingerprint": "f01bc280f8b0478db57369622cb615820a03e4cbff3a77c9294f2f3ccf865927",
+      "snippet": "name: Multi Document"
+    }
+  ]
 }

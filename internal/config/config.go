@@ -39,10 +39,13 @@ type PathsConfig struct {
 }
 
 type Suppression struct {
-	Rule    string `yaml:"rule" json:"rule"`
-	Path    string `yaml:"path" json:"path"`
-	Reason  string `yaml:"reason" json:"reason"`
-	Expires string `yaml:"expires" json:"expires"`
+	Rule        string `yaml:"rule" json:"rule"`
+	Path        string `yaml:"path" json:"path"`
+	Fingerprint string `yaml:"fingerprint,omitempty" json:"fingerprint,omitempty"`
+	YAMLPath    string `yaml:"yaml_path,omitempty" json:"yaml_path,omitempty"`
+	Evidence    string `yaml:"evidence,omitempty" json:"evidence,omitempty"`
+	Reason      string `yaml:"reason" json:"reason"`
+	Expires     string `yaml:"expires" json:"expires"`
 }
 
 func Default() Config {
@@ -111,6 +114,9 @@ func Validate(cfg Config) error {
 		if suppression.Path == "" {
 			validationErrs = append(validationErrs, fmt.Errorf("suppression %d path is required", index))
 		}
+		if suppression.Fingerprint == "" && (suppression.YAMLPath == "" || suppression.Evidence == "") {
+			validationErrs = append(validationErrs, fmt.Errorf("suppression %d requires fingerprint or both yaml_path and evidence", index))
+		}
 		if suppression.Reason == "" {
 			validationErrs = append(validationErrs, fmt.Errorf("suppression %d reason is required", index))
 		}
@@ -172,6 +178,9 @@ func (cfg Config) SuppressionFor(finding githubactions.Finding, now time.Time) (
 		if suppression.Rule != finding.RuleID || suppression.Path != finding.File {
 			continue
 		}
+		if !suppressionMatches(suppression, finding) {
+			continue
+		}
 		expires, err := time.Parse("2006-01-02", suppression.Expires)
 		if err != nil {
 			continue
@@ -182,6 +191,13 @@ func (cfg Config) SuppressionFor(finding githubactions.Finding, now time.Time) (
 		return suppression, true, false
 	}
 	return Suppression{}, false, false
+}
+
+func suppressionMatches(suppression Suppression, finding githubactions.Finding) bool {
+	if suppression.Fingerprint != "" {
+		return suppression.Fingerprint == finding.Fingerprint
+	}
+	return suppression.YAMLPath == finding.YAMLPath && suppression.Evidence == finding.Evidence
 }
 
 func findDefault(root string) (string, error) {

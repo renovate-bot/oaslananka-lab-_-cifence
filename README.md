@@ -9,7 +9,7 @@ GitHub Actions workflows often control releases, credentials, package publishing
 ## Install
 
 ```bash
-go install github.com/oaslananka/cifence/cmd/cifence@v0.1.1
+go install github.com/oaslananka/cifence/cmd/cifence@v0.2.0
 ```
 
 Go is only required for local source development. Normal GitHub Action usage runs the bundled CLI binary for the runner platform.
@@ -70,11 +70,13 @@ paths:
 suppressions:
   - rule: CF-ACT-001
     path: .github/workflows/legacy.yml
+    yaml_path: jobs.scan.steps[0].uses
+    evidence: vendor/action@v1
     reason: "Vendor action has no immutable release yet"
     expires: "2026-07-01"
 ```
 
-Suppression `reason` and `expires` are required. Expired suppressions are reported as findings. See `docs/configuration.md` and `schemas/config.schema.json`.
+Suppressions require a precise match key plus `reason` and `expires`. Expired suppressions are reported as findings. See `docs/configuration.md` and `schemas/config.schema.json`.
 
 ## Baselines
 
@@ -111,7 +113,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@<FULL_40_CHARACTER_SHA_FOR_CHECKOUT_V6>
-      - uses: oaslananka/cifence@v0.1.1
+      - uses: oaslananka/cifence@v0.2.0
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:

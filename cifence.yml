@@ -9,27 +9,81 @@ paths:
     - .github/workflows/*.yaml
 
 suppressions:
+  - rule: CF-PERM-003
+    path: .github/workflows/codeql.yml
+    yaml_path: jobs.analyze.permissions.security-events
+    evidence: "security-events: write"
+    reason: "CodeQL uploads SARIF on pull requests with the official GitHub action and does not run repository scripts."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/codeql.yml
+    yaml_path: jobs.analyze.permissions
+    evidence: 'job "analyze" permission escalation'
+    reason: "CodeQL requires job-level security-events write for code scanning upload while the workflow baseline stays read-only."
+    expires: "2026-12-31"
   - rule: CF-PERM-006
     path: .github/workflows/release.yml
-    reason: "Release automation requires release-please and attestation actions with release-scoped write permissions."
+    yaml_path: jobs.release-please
+    evidence: 'job "release-please" third-party action with write token'
+    reason: "Release automation uses release-please with release-scoped write permissions in the organization-only release workflow."
     expires: "2026-12-31"
   - rule: CF-PERM-005
     path: .github/workflows/release.yml
-    reason: "Release jobs intentionally escalate from the read-only workflow baseline only after repository and release guards."
+    yaml_path: jobs.release-please.permissions
+    evidence: 'job "release-please" permission escalation'
+    reason: "The release-please job intentionally escalates from the read-only workflow baseline only after repository and release guards."
+    expires: "2026-12-31"
+  - rule: CF-PERM-006
+    path: .github/workflows/release.yml
+    yaml_path: jobs.release-assets
+    evidence: 'job "release-assets" third-party action with write token'
+    reason: "Release asset generation uses SBOM and attestation actions only after release-please creates a release in the organization repository."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/release.yml
+    yaml_path: jobs.release-assets.permissions
+    evidence: 'job "release-assets" permission escalation'
+    reason: "The release-assets job needs contents, attestations, and id-token write only after release-please reports a created release."
     expires: "2026-12-31"
   - rule: CF-PERM-006
     path: .github/workflows/scorecard.yml
+    yaml_path: jobs.scorecard
+    evidence: 'job "scorecard" third-party action with write token'
     reason: "Scorecard uploads SARIF from the maintained OSSF action with explicit security-events and id-token permissions."
     expires: "2026-12-31"
   - rule: CF-PERM-003
     path: .github/workflows/scorecard.yml
+    yaml_path: jobs.scorecard.permissions.security-events
+    evidence: "security-events: write"
+    reason: "Scorecard requires security-events write for SARIF upload and does not execute repository code."
+    expires: "2026-12-31"
+  - rule: CF-PERM-003
+    path: .github/workflows/scorecard.yml
+    yaml_path: jobs.scorecard.permissions.id-token
+    evidence: "id-token: write"
     reason: "Scorecard requires id-token for signed score publication and does not execute repository code."
     expires: "2026-12-31"
   - rule: CF-PERM-005
     path: .github/workflows/scorecard.yml
+    yaml_path: jobs.scorecard.permissions
+    evidence: 'job "scorecard" permission escalation'
     reason: "Scorecard grants only the job-level permissions required for SARIF upload and OIDC."
+    expires: "2026-12-31"
+  - rule: CF-PERM-003
+    path: .github/workflows/security.yml
+    yaml_path: jobs.scan.permissions.security-events
+    evidence: "security-events: write"
+    reason: "The security workflow uploads CIFence SARIF on pull requests after offline scans with no repository mutation."
+    expires: "2026-12-31"
+  - rule: CF-PERM-005
+    path: .github/workflows/security.yml
+    yaml_path: jobs.scan.permissions
+    evidence: 'job "scan" permission escalation'
+    reason: "The security scan job needs security-events write only for SARIF upload while baseline workflow permissions remain read-only."
     expires: "2026-12-31"
   - rule: CF-PERM-005
     path: .github/workflows/sync-from-personal.yml
+    yaml_path: jobs.apply.permissions
+    evidence: 'job "apply" permission escalation'
     reason: "Manual mirror sync apply job needs contents write and refuses divergent refs."
     expires: "2026-12-31"

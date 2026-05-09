@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"errors"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -22,6 +23,8 @@ type DiscoverOptions struct {
 	Include []string
 	Exclude []string
 }
+
+var ErrMultipleDocuments = errors.New("workflow YAML contains multiple documents")
 
 func DiscoverWorkflows(root string) ([]string, error) {
 	return DiscoverWorkflowsWithOptions(root, DiscoverOptions{})
@@ -86,11 +89,37 @@ func ParseFile(path string, displayPath string) (Document, error) {
 	if err := decoder.Decode(&root); err != nil {
 		return Document{File: displayPath, Content: content}, err
 	}
+	for {
+		var extra yaml.Node
+		err := decoder.Decode(&extra)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return Document{File: displayPath, Content: content}, err
+		}
+		if !isEmptyDocument(&extra) {
+			return Document{Root: &root, File: displayPath, Content: content}, ErrMultipleDocuments
+		}
+	}
 	return Document{
 		Root:    &root,
 		File:    displayPath,
 		Content: content,
 	}, nil
+}
+
+func isEmptyDocument(node *yaml.Node) bool {
+	if node == nil || node.Kind == 0 {
+		return true
+	}
+	if node.Kind == yaml.DocumentNode {
+		if len(node.Content) == 0 {
+			return true
+		}
+		return isEmptyDocument(node.Content[0])
+	}
+	return node.Kind == yaml.ScalarNode && node.Tag == "!!null" && strings.TrimSpace(node.Value) == ""
 }
 
 func DisplayPath(root string, file string) string {

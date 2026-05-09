@@ -121,12 +121,24 @@ func TestBaselineExistingFindingsDoNotFail(t *testing.T) {
 
 func TestExpiredSuppressionReportsFinding(t *testing.T) {
 	cfg := config.Default()
-	cfg.Suppressions = []config.Suppression{{
-		Rule:    "CF-PERM-002",
-		Path:    "missing-permissions.yml",
-		Reason:  "migration window",
-		Expires: "2026-01-01",
-	}}
+	cfg.Suppressions = []config.Suppression{
+		{
+			Rule:     "CF-PERM-002",
+			Path:     "missing-permissions.yml",
+			YAMLPath: "",
+			Evidence: "workflow permissions missing",
+			Reason:   "migration window",
+			Expires:  "2026-01-01",
+		},
+		{
+			Rule:     "CF-PERM-002",
+			Path:     "missing-permissions.yml",
+			YAMLPath: "",
+			Evidence: "job \"test\" permissions missing",
+			Reason:   "migration window",
+			Expires:  "2026-01-01",
+		},
+	}
 	report, err := ScanWithOptions(filepath.Join("..", "..", "tests", "fixtures", "workflows", "missing-permissions.yml"), ScanOptions{
 		Config:    cfg,
 		HasConfig: true,

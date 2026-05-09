@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
@@ -95,5 +96,15 @@ func TestParseInvalidYAML(t *testing.T) {
 	}
 	if _, err := ParseFile(path, "invalid.yml"); err == nil {
 		t.Fatal("expected parse error")
+	}
+}
+
+func TestParseMultiDocumentWorkflowFailsClosed(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "multi.yml")
+	if err := os.WriteFile(path, []byte("name: safe\n---\npermissions: write-all\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ParseFile(path, "multi.yml"); !errors.Is(err, ErrMultipleDocuments) {
+		t.Fatalf("expected multi-document error, got %v", err)
 	}
 }

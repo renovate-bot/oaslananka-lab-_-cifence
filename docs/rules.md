@@ -46,6 +46,13 @@ CIFence rule IDs are stable. Severity defaults can be overridden in `cifence.yml
 - Example: a job with `contents: write` and a non-`actions/*` remote action.
 - Remediation: split third-party actions into read-only jobs or remove write scopes.
 
+### CF-PERM-007: unknown GitHub token permission scope
+
+- Severity: medium
+- Rationale: unknown scopes are often typos, and future scopes should be reviewed before being treated as safe.
+- Example: `permissions: typo-scope: write`
+- Remediation: verify the scope against GitHub Actions documentation, remove typos, or update CIFence for newly introduced scopes.
+
 ## Actions And Reusable Workflows
 
 ### CF-ACT-001: action reference is not pinned to a full commit SHA
@@ -95,9 +102,23 @@ CIFence rule IDs are stable. Severity defaults can be overridden in `cifence.yml
 ### CF-INJ-003: untrusted context used in workflow data field
 
 - Severity: medium
-- Rationale: cache keys, artifact names, and shell environment fields can affect workflow behavior.
+- Rationale: cache keys, artifact names, and action command arguments can affect workflow behavior.
 - Example: `key: ${{ github.head_ref }}`
 - Remediation: use trusted stable identifiers or sanitize untrusted values.
+
+### CF-CACHE-001: cache key uses attacker-controlled context
+
+- Severity: high
+- Rationale: attacker-controlled cache keys can poison state reused by later jobs or privileged workflows.
+- Example: `key: ${{ github.event.pull_request.title }}`
+- Remediation: use trusted cache keys and avoid crossing trust boundaries between untrusted and privileged workflows.
+
+### CF-ENV-001: untrusted context written to GitHub environment file
+
+- Severity: high
+- Rationale: GitHub environment files affect later step environment, path, and outputs.
+- Example: `run: echo "NAME=${{ github.event.pull_request.title }}" >> "$GITHUB_ENV"`
+- Remediation: never append untrusted event data directly to `GITHUB_ENV`, `GITHUB_PATH`, or `GITHUB_OUTPUT`; validate and encode values first.
 
 ## pull_request_target
 
@@ -165,6 +186,29 @@ CIFence rule IDs are stable. Severity defaults can be overridden in `cifence.yml
 - Rationale: `secrets: inherit` exposes all caller secrets to the reusable workflow boundary.
 - Example: a reusable workflow call with `secrets: inherit`.
 - Remediation: pass only explicit secrets required by the called workflow.
+
+## Workflow Boundaries And Runners
+
+### CF-ART-001: workflow_run artifact is executed
+
+- Severity: high
+- Rationale: artifacts from a lower-trust workflow can become code or data inputs in a privileged workflow.
+- Example: a `workflow_run` job downloads an artifact and then runs `bash artifact/script.sh`.
+- Remediation: verify artifact provenance and contents before execution, or avoid privileged artifact execution.
+
+### CF-RUN-001: workflow_run grants dangerous write permissions
+
+- Severity: high
+- Rationale: `workflow_run` can cross a privilege boundary from one workflow to another.
+- Example: `on: workflow_run` with `contents: write`.
+- Remediation: keep `workflow_run` jobs read-only unless producer trust, branch restrictions, and artifact validation are explicit.
+
+### CF-RUNNER-001: self-hosted runner on untrusted trigger
+
+- Severity: high
+- Rationale: untrusted contributions can expose persistent self-hosted runners to code execution risks.
+- Example: `on: pull_request` with `runs-on: [self-hosted, linux]`.
+- Remediation: use GitHub-hosted runners for untrusted workflows or isolate self-hosted runners with trusted labels and protected triggers.
 
 ## Governance
 

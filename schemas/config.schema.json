@@ -49,10 +49,29 @@
       "items": {
         "type": "object",
         "required": ["rule", "path", "reason", "expires"],
+        "anyOf": [
+          {
+            "required": ["fingerprint"],
+            "properties": { "fingerprint": true }
+          },
+          {
+            "required": ["yaml_path", "evidence"],
+            "properties": {
+              "yaml_path": true,
+              "evidence": true
+            }
+          }
+        ],
         "additionalProperties": false,
         "properties": {
           "rule": { "type": "string", "pattern": "^CF-[A-Z]+-[0-9]{3}$" },
           "path": { "type": "string", "minLength": 1 },
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "yaml_path": { "type": "string", "minLength": 1 },
+          "evidence": { "type": "string", "minLength": 1 },
           "reason": { "type": "string", "minLength": 1 },
           "expires": { "type": "string", "format": "date" }
         }

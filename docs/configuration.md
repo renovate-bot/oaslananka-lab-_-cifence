@@ -31,6 +31,8 @@ paths:
 suppressions:
   - rule: CF-ACT-001
     path: .github/workflows/legacy.yml
+    yaml_path: jobs.scan.steps[0].uses
+    evidence: vendor/action@v1
     reason: "Vendor action has no immutable release yet"
     expires: "2026-07-01"
 ```
@@ -53,10 +55,13 @@ Suppressions require:
 
 - `rule`: known CIFence rule ID
 - `path`: normalized report path
+- `fingerprint`, or both `yaml_path` and `evidence`
 - `reason`: human-readable justification
 - `expires`: `YYYY-MM-DD`
 
 Expired suppressions are reported as `CF-SUP-001` findings. Active suppressions remain visible in JSON with suppression metadata and do not fail enforce mode.
+
+Rule and path alone are intentionally insufficient. A suppression must match the exact finding fingerprint, or the exact YAML path and evidence, so a later finding in the same file with the same rule is still reported as new.
 
 ## Baselines
 

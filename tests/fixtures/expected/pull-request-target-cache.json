@@ -2,9 +2,9 @@
   "version": "0.0.0-dev",
   "summary": {
     "files_scanned": 1,
-    "findings": 2,
+    "findings": 3,
     "critical": 0,
-    "high": 1,
+    "high": 2,
     "medium": 1,
     "low": 0,
     "suppressed": 0,
@@ -12,6 +12,20 @@
     "new": 0
   },
   "findings": [
+    {
+      "rule_id": "CF-CACHE-001",
+      "severity": "high",
+      "title": "cache key uses attacker-controlled context",
+      "message": "Cache key material is derived from attacker-controlled workflow context.",
+      "file": "pull-request-target-cache.yml",
+      "line": 18,
+      "column": 16,
+      "yaml_path": "jobs.*.steps[].with.key",
+      "evidence": "github.head_ref",
+      "remediation": "Use trusted stable cache keys and avoid crossing trust boundaries between untrusted PR workflows and privileged workflows.",
+      "fingerprint": "e2bb6b45f09f8a71a3cd84c5bd9cca47ab88335c4735349f6e9106c3da937e9f",
+      "snippet": "key: ${{ github.head_ref }}"
+    },
     {
       "rule_id": "CF-INJ-003",
       "severity": "medium",

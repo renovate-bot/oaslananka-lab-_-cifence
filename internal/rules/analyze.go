@@ -31,13 +31,25 @@ var unsafeCheckoutRefs = []string{
 }
 
 var untrustedContextRefs = []string{
+	"github.head_ref",
+	"github.event.inputs.",
+	"inputs.",
 	"github.event.pull_request.title",
 	"github.event.pull_request.body",
 	"github.event.pull_request.head.ref",
+	"github.event.pull_request.head.label",
+	"github.event.pull_request.head.repo.full_name",
 	"github.event.issue.title",
 	"github.event.issue.body",
 	"github.event.comment.body",
-	"github.head_ref",
+	"github.event.head_commit.message",
+	"github.event.commits.",
+	"github.event.sender.login",
+	"github.event.label.name",
+	"github.event.release.name",
+	"github.event.release.body",
+	"github.event.discussion.title",
+	"github.event.discussion.body",
 }
 
 var pullRequestTargetShellPatterns = []string{
@@ -47,13 +59,41 @@ var pullRequestTargetShellPatterns = []string{
 	"github.event.pull_request.head.ref",
 }
 
+var knownPermissionScopes = map[string]struct{}{
+	"actions":              {},
+	"artifact-metadata":    {},
+	"attestations":         {},
+	"checks":               {},
+	"contents":             {},
+	"deployments":          {},
+	"discussions":          {},
+	"id-token":             {},
+	"issues":               {},
+	"metadata":             {},
+	"models":               {},
+	"packages":             {},
+	"pages":                {},
+	"pull-requests":        {},
+	"security-events":      {},
+	"statuses":             {},
+	"vulnerability-alerts": {},
+}
+
 var dangerousWriteScopes = map[string]struct{}{
-	"actions":       {},
-	"checks":        {},
-	"contents":      {},
-	"id-token":      {},
-	"packages":      {},
-	"pull-requests": {},
+	"actions":           {},
+	"artifact-metadata": {},
+	"attestations":      {},
+	"checks":            {},
+	"contents":          {},
+	"deployments":       {},
+	"discussions":       {},
+	"id-token":          {},
+	"issues":            {},
+	"packages":          {},
+	"pages":             {},
+	"pull-requests":     {},
+	"security-events":   {},
+	"statuses":          {},
 }
 
 func Analyze(doc parser.Document) []githubactions.Finding {
@@ -69,6 +109,8 @@ func Analyze(doc parser.Document) []githubactions.Finding {
 	findings = append(findings, injectionFindings(doc.File, root)...)
 	findings = append(findings, containerImageFindings(doc.File, root)...)
 	findings = append(findings, pullRequestTargetFindings(doc.File, root)...)
+	findings = append(findings, workflowRunBoundaryFindings(doc.File, root)...)
+	findings = append(findings, selfHostedRunnerFindings(doc.File, root)...)
 
 	sort.SliceStable(findings, func(i, j int) bool {
 		if findings[i].File != findings[j].File {
@@ -113,6 +155,9 @@ func permissionsFindings(file string, root *yaml.Node) []githubactions.Finding {
 	}
 
 	workflowPermissions := permissionSet(permissionsValue)
+	if hasWorkflowPermissions {
+		findings = append(findings, unknownPermissionFindings(file, permissionsValue, workflowPermissions, "workflow", "permissions")...)
+	}
 	prLike := hasEvent(root, "pull_request") || hasPullRequestTarget(root)
 	if prLike {
 		findings = append(findings, dangerousPermissionFindings(file, permissionsValue, workflowPermissions, "workflow", "CF-PERM-003", "permissions")...)
@@ -146,6 +191,9 @@ func permissionsFindings(file string, root *yaml.Node) []githubactions.Finding {
 			findings = append(findings, newFinding("CF-PERM-002", file, job.Key, message, evidence))
 		}
 		jobPermissions := permissionSet(jobPermissionsValue)
+		if hasJobPermissions {
+			findings = append(findings, unknownPermissionFindings(file, jobPermissionsValue, jobPermissions, fmt.Sprintf("job %q", job.Key.Value), fmt.Sprintf("jobs.%s.permissions", job.Key.Value))...)
+		}
 		if prLike {
 			findings = append(findings, dangerousPermissionFindings(file, jobPermissionsValue, jobPermissions, fmt.Sprintf("job %q", job.Key.Value), "CF-PERM-003", fmt.Sprintf("jobs.%s.permissions", job.Key.Value))...)
 		}
@@ -243,6 +291,14 @@ func injectionFindings(file string, root *yaml.Node) []githubactions.Finding {
 		if _, runNode, ok := lookup(step, "run"); ok {
 			if runValue, ok := scalarString(runNode); ok && containsUntrustedContext(runValue) {
 				findings = append(findings, newFinding("CF-INJ-001", file, runNode, "Untrusted GitHub context is interpolated into a run step.", firstUntrustedContext(runValue), "jobs.*.steps[].run"))
+				if containsEnvironmentFileSink(runValue) {
+					findings = append(findings, newFinding("CF-ENV-001", file, runNode, "Untrusted GitHub context is written to a GitHub environment file.", firstUntrustedContext(runValue), "jobs.*.steps[].run"))
+				}
+			}
+		}
+		if _, shellNode, ok := lookup(step, "shell"); ok {
+			if shellValue, ok := scalarString(shellNode); ok && containsUntrustedContext(shellValue) {
+				findings = append(findings, newFinding("CF-INJ-001", file, shellNode, "Untrusted GitHub context is interpolated into a shell selector.", firstUntrustedContext(shellValue), "jobs.*.steps[].shell"))
 			}
 		}
 		usesValue := ""
@@ -258,24 +314,73 @@ func injectionFindings(file string, root *yaml.Node) []githubactions.Finding {
 				}
 			}
 		}
-		if isCacheOrArtifactAction(usesValue) {
-			if _, withNode, ok := lookup(step, "with"); ok {
+		if _, withNode, ok := lookup(step, "with"); ok {
+			for _, key := range []string{"args", "arguments", "command", "cmd", "entrypoint"} {
+				if _, valueNode, ok := lookup(asMapping(withNode), key); ok {
+					if value, ok := scalarString(valueNode); ok && containsUntrustedContext(value) {
+						findings = append(findings, newFinding("CF-INJ-003", file, valueNode, "Untrusted context is passed into action command arguments.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+					}
+				}
+			}
+			if isCacheOrArtifactAction(usesValue) {
 				for _, key := range []string{"key", "restore-keys", "name"} {
 					if _, valueNode, ok := lookup(asMapping(withNode), key); ok {
 						if value, ok := scalarString(valueNode); ok && containsUntrustedContext(value) {
 							findings = append(findings, newFinding("CF-INJ-003", file, valueNode, "Untrusted context is used in a cache key or artifact name.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+							if isCacheAction(usesValue) && (key == "key" || key == "restore-keys") {
+								findings = append(findings, newFinding("CF-CACHE-001", file, valueNode, "Cache key material is derived from attacker-controlled workflow context.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+							}
 						}
 					}
 				}
 			}
 		}
-		if _, envNode, ok := lookup(step, "env"); ok {
-			for _, env := range mappingPairs(asMapping(envNode)) {
-				if value, ok := scalarString(env.Value); ok && containsUntrustedContext(value) {
-					findings = append(findings, newFinding("CF-INJ-003", file, env.Value, "Untrusted context is assigned to a shell environment value.", firstUntrustedContext(value), "jobs.*.steps[].env."+env.Key.Value))
-				}
-			}
+	}
+	return findings
+}
+
+func workflowRunBoundaryFindings(file string, root *yaml.Node) []githubactions.Finding {
+	if !hasEvent(root, "workflow_run") {
+		return nil
+	}
+	var findings []githubactions.Finding
+	workflowPermissions := permissionSet(mustLookup(root, "permissions"))
+	if hasDangerousWrite(workflowPermissions) {
+		findings = append(findings, newFinding("CF-RUN-001", file, mustLookup(root, "permissions"), "workflow_run grants dangerous write permissions across a workflow boundary.", "workflow_run write token", "permissions"))
+	}
+	for _, job := range jobs(root) {
+		jobMap := asMapping(job.Value)
+		if jobMap == nil {
+			continue
 		}
+		if hasDangerousWrite(permissionSet(mustLookup(jobMap, "permissions"))) {
+			message := fmt.Sprintf("workflow_run job %q grants dangerous write permissions across a workflow boundary.", job.Key.Value)
+			findings = append(findings, newFinding("CF-RUN-001", file, job.Key, message, "workflow_run job write token", fmt.Sprintf("jobs.%s.permissions", job.Key.Value)))
+		}
+		if jobDownloadsArtifact(jobMap) && jobExecutesDownloadedContent(jobMap) {
+			message := fmt.Sprintf("workflow_run job %q downloads artifacts and executes shell content.", job.Key.Value)
+			findings = append(findings, newFinding("CF-ART-001", file, job.Key, message, "workflow_run artifact execution", fmt.Sprintf("jobs.%s", job.Key.Value)))
+		}
+	}
+	return findings
+}
+
+func selfHostedRunnerFindings(file string, root *yaml.Node) []githubactions.Finding {
+	if !hasUntrustedTrigger(root) {
+		return nil
+	}
+	var findings []githubactions.Finding
+	for _, job := range jobs(root) {
+		jobMap := asMapping(job.Value)
+		if jobMap == nil {
+			continue
+		}
+		_, runsOnNode, ok := lookup(jobMap, "runs-on")
+		if !ok || !runsOnSelfHosted(runsOnNode) {
+			continue
+		}
+		message := fmt.Sprintf("Job %q uses a self-hosted runner on an untrusted trigger.", job.Key.Value)
+		findings = append(findings, newFinding("CF-RUNNER-001", file, runsOnNode, message, "self-hosted runner", fmt.Sprintf("jobs.%s.runs-on", job.Key.Value)))
 	}
 	return findings
 }
@@ -517,6 +622,21 @@ func permissionSet(node *yaml.Node) map[string]string {
 	return out
 }
 
+func unknownPermissionFindings(file string, node *yaml.Node, permissions map[string]string, label string, yamlPath string) []githubactions.Finding {
+	var findings []githubactions.Finding
+	for scope := range permissions {
+		if scope == "*" {
+			continue
+		}
+		if _, ok := knownPermissionScopes[scope]; ok {
+			continue
+		}
+		message := fmt.Sprintf("%s declares unknown GitHub token permission scope %q.", label, scope)
+		findings = append(findings, newFinding("CF-PERM-007", file, node, message, scope, yamlPath+"."+scope))
+	}
+	return findings
+}
+
 func dangerousPermissionFindings(file string, node *yaml.Node, permissions map[string]string, label string, ruleID string, yamlPath string) []githubactions.Finding {
 	var findings []githubactions.Finding
 	if permissions["*"] == "write" {
@@ -597,7 +717,7 @@ func hasTrustedPushBranch(root *yaml.Node) bool {
 	}
 	pushMap := asMapping(pushNode)
 	if pushMap == nil {
-		return true
+		return false
 	}
 	_, branchesNode, ok := lookup(pushMap, "branches")
 	if !ok {
@@ -700,7 +820,17 @@ func isGitHubScriptAction(usesValue string) bool {
 
 func isCacheOrArtifactAction(usesValue string) bool {
 	action, _, _ := splitActionRef(strings.ToLower(usesValue))
-	return action == "actions/cache" || action == "actions/upload-artifact" || strings.HasSuffix(action, "/cache") || strings.HasSuffix(action, "/upload-artifact")
+	return action == "actions/cache" || action == "actions/upload-artifact" || action == "actions/download-artifact" || strings.HasSuffix(action, "/cache") || strings.HasSuffix(action, "/upload-artifact") || strings.HasSuffix(action, "/download-artifact")
+}
+
+func isCacheAction(usesValue string) bool {
+	action, _, _ := splitActionRef(strings.ToLower(usesValue))
+	return action == "actions/cache" || strings.HasSuffix(action, "/cache")
+}
+
+func isDownloadArtifactAction(usesValue string) bool {
+	action, _, _ := splitActionRef(strings.ToLower(usesValue))
+	return action == "actions/download-artifact" || strings.HasSuffix(action, "/download-artifact")
 }
 
 func isThirdPartyAction(usesValue string) bool {
@@ -748,6 +878,58 @@ func firstShellPattern(value string) string {
 		}
 	}
 	return ""
+}
+
+func containsEnvironmentFileSink(value string) bool {
+	lower := strings.ToLower(value)
+	return strings.Contains(lower, "github_env") || strings.Contains(lower, "github_output") || strings.Contains(lower, "github_path")
+}
+
+func hasUntrustedTrigger(root *yaml.Node) bool {
+	if hasEvent(root, "pull_request") || hasPullRequestTarget(root) || hasEvent(root, "issues") || hasEvent(root, "issue_comment") || hasEvent(root, "discussion") || hasEvent(root, "workflow_run") {
+		return true
+	}
+	return hasEvent(root, "push") && !hasTrustedPushBranch(root)
+}
+
+func runsOnSelfHosted(node *yaml.Node) bool {
+	if value, ok := scalarString(node); ok {
+		return strings.Contains(strings.ToLower(value), "self-hosted")
+	}
+	for _, value := range scalarValues(node) {
+		if strings.EqualFold(strings.TrimSpace(value), "self-hosted") {
+			return true
+		}
+	}
+	return false
+}
+
+func jobDownloadsArtifact(jobMap *yaml.Node) bool {
+	for _, step := range stepsOfJob(jobMap) {
+		if _, usesNode, ok := lookup(step, "uses"); ok {
+			if usesValue, ok := scalarString(usesNode); ok && isDownloadArtifactAction(usesValue) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func jobExecutesDownloadedContent(jobMap *yaml.Node) bool {
+	for _, step := range stepsOfJob(jobMap) {
+		_, runNode, ok := lookup(step, "run")
+		if !ok {
+			continue
+		}
+		runValue, _ := scalarString(runNode)
+		lower := strings.ToLower(runValue)
+		for _, pattern := range []string{"bash ", "sh ", "source ", "./", "python ", "node ", "chmod +x"} {
+			if strings.Contains(lower, pattern) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func containerImage(node *yaml.Node) (*yaml.Node, string) {

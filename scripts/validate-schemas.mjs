@@ -56,6 +56,8 @@ assertValid(
       {
         rule: "CF-ACT-001",
         path: ".github/workflows/legacy.yml",
+        yaml_path: "jobs.scan.steps[0].uses",
+        evidence: "vendor/action@v1",
         reason: "Vendor action has no immutable release yet",
         expires: "2026-07-01",
       },

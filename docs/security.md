@@ -24,7 +24,7 @@ SARIF files are written locally unless upload is explicitly enabled. SARIF uploa
 
 ## Policy And Baseline Controls
 
-Suppression entries require both a reason and an expiry date. Expired suppressions are reported as findings. Baselines distinguish existing findings from new findings so teams can adopt enforce mode without hiding new regressions.
+Suppression entries require a precise match key, a reason, and an expiry date. Expired suppressions are reported as findings. Baselines distinguish existing findings from new findings so teams can adopt enforce mode without hiding new regressions.
 
 ## Secure Release Model
 
