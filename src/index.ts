@@ -18,11 +18,15 @@ type CIFenceReport = {
 const outputDirectory = "cifence-results";
 
 async function main(): Promise<void> {
-  const targetPath = path.resolve(
-    process.env.GITHUB_WORKSPACE || process.cwd(),
-    core.getInput("path") || ".",
-  );
+  const workspace = path.resolve(process.env.GITHUB_WORKSPACE || process.cwd());
+  const targetPath = path.resolve(workspace, core.getInput("path") || ".");
+  if (!getBooleanInput("allow-outside-workspace") && !isInsidePath(workspace, targetPath)) {
+    throw new Error(
+      `CIFence scan path must stay inside GITHUB_WORKSPACE unless allow-outside-workspace=true. workspace: ${workspace}; path: ${targetPath}`,
+    );
+  }
   const mode = normalizeMode(core.getInput("mode") || "warn");
+  const failOn = normalizeSeverity(core.getInput("fail-on") || "high");
   const writeSarif = getBooleanInput("sarif");
   const writeJson = getBooleanInput("json");
   const writeMarkdown = getBooleanInput("markdown");
@@ -38,7 +42,7 @@ async function main(): Promise<void> {
 
   const actionPath = resolveActionRoot();
   const cli = await resolveCIFenceCLI(actionPath, resultDirectory);
-  const args = ["scan", "--path", targetPath, "--mode", mode];
+  const args = ["scan", "--path", targetPath, "--mode", mode, "--fail-on", failOn];
   if (writeJson) {
     args.push("--json", jsonPath);
   }
@@ -218,6 +222,18 @@ function normalizeMode(value: string): "warn" | "enforce" {
     return value;
   }
   throw new Error(`Invalid mode: ${value}`);
+}
+
+function normalizeSeverity(value: string): "low" | "medium" | "high" | "critical" {
+  if (value === "low" || value === "medium" || value === "high" || value === "critical") {
+    return value;
+  }
+  throw new Error(`Invalid fail-on severity: ${value}`);
+}
+
+function isInsidePath(parent: string, child: string): boolean {
+  const relative = path.relative(parent, child);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 function getBooleanInput(name: string): boolean {

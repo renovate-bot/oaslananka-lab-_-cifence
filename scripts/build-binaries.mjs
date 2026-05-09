@@ -22,7 +22,14 @@ for (const target of targets) {
 
   const result = spawnSync(
     "go",
-    ["build", "-trimpath", "-ldflags=-s -w", "-o", output, "./cmd/cifence"],
+    [
+      "build",
+      "-trimpath",
+      `-ldflags=-s -w -X github.com/oaslananka/cifence/internal/analyzer.Version=${packageJson.version}`,
+      "-o",
+      output,
+      "./cmd/cifence",
+    ],
     {
       cwd: root,
       env: {

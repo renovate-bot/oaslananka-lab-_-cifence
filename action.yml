@@ -13,6 +13,14 @@ inputs:
     description: warn exits successfully with findings; enforce fails on high or critical findings.
     required: false
     default: warn
+  fail-on:
+    description: "Minimum severity that fails enforce mode: low, medium, high, or critical."
+    required: false
+    default: high
+  allow-outside-workspace:
+    description: Allow scanning an absolute path outside GITHUB_WORKSPACE.
+    required: false
+    default: "false"
   sarif:
     description: Write a SARIF report.
     required: false

@@ -4,7 +4,16 @@ import YAML from "yaml";
 
 const metadata = YAML.parse(await readFile("action.yml", "utf8"));
 
-const requiredInputs = ["path", "mode", "sarif", "json", "markdown", "upload-sarif"];
+const requiredInputs = [
+  "path",
+  "mode",
+  "fail-on",
+  "allow-outside-workspace",
+  "sarif",
+  "json",
+  "markdown",
+  "upload-sarif",
+];
 const requiredOutputs = [
   "findings",
   "critical",

@@ -93,6 +93,8 @@ function runActionSmoke({ name, workspace, actionPath, noGoPath }) {
     GITHUB_REF: "refs/heads/main",
     INPUT_PATH: ".",
     INPUT_MODE: "warn",
+    "INPUT_FAIL-ON": "high",
+    "INPUT_ALLOW-OUTSIDE-WORKSPACE": "false",
     INPUT_SARIF: "true",
     INPUT_JSON: "true",
     INPUT_MARKDOWN: "true",
