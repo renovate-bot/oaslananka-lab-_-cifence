@@ -63,7 +63,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          branch="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --search "release-please in:title" --json headRefName --jq '.[0].headRefName // ""')"
+          branch="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --label "autorelease: pending" --json headRefName --jq '.[] | select(.headRefName | startswith("release-please--")) | .headRefName' | head -n 1)"
           if [[ -z "$branch" ]]; then
             echo "No release-please PR branch found."
             exit 0
