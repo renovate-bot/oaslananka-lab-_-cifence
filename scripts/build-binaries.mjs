@@ -25,7 +25,8 @@ for (const target of targets) {
     [
       "build",
       "-trimpath",
-      `-ldflags=-s -w -X github.com/oaslananka/cifence/internal/analyzer.Version=${packageJson.version}`,
+      "-buildvcs=false",
+      `-ldflags=-s -w -buildid= -X github.com/oaslananka/cifence/internal/analyzer.Version=${packageJson.version}`,
       "-o",
       output,
       "./cmd/cifence",

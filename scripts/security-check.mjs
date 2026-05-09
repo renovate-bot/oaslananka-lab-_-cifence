@@ -14,7 +14,8 @@ try {
   run("go", [
     "build",
     "-trimpath",
-    `-ldflags=-s -w -X github.com/oaslananka/cifence/internal/analyzer.Version=${packageJson.version}`,
+    "-buildvcs=false",
+    `-ldflags=-s -w -buildid= -X github.com/oaslananka/cifence/internal/analyzer.Version=${packageJson.version}`,
     "-o",
     binary,
     "./cmd/cifence",
