@@ -19,8 +19,8 @@
     "LICENSE"
   ],
   "scripts": {
-    "format": "prettier --write \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
+    "format": "prettier --write \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!CHANGELOG.md\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{md,json,yml,yaml,ts,mjs}\" \"!CHANGELOG.md\" \"!tests/fixtures/workflows/invalid-yaml.yml\" --ignore-path .gitignore",
     "lint": "node scripts/validate-action-metadata.mjs && node scripts/validate-fixtures.mjs --schema-only && node scripts/validate-schemas.mjs",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --minify --legal-comments=none --outfile=dist/index.js",
