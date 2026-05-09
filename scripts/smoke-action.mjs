@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import {
+  cpSync,
   existsSync,
   mkdirSync,
   mkdtempSync,
@@ -53,6 +54,11 @@ try {
     workspace: join(tempRoot, "without-action-path"),
     actionPath: "",
     noGoPath,
+  });
+
+  runFallbackBuildSmoke({
+    workspace: join(tempRoot, "fallback-build"),
+    actionPath: join(tempRoot, "action-without-binaries"),
   });
 } finally {
   rmSync(tempRoot, { recursive: true, force: true });
@@ -144,6 +150,85 @@ function runActionSmoke({ name, workspace, actionPath, noGoPath }) {
     if (!output.includes(outputName)) {
       fail(`${name} did not set ${outputName}`);
     }
+  }
+}
+
+function runFallbackBuildSmoke({ workspace, actionPath }) {
+  for (const entry of ["dist", "cmd", "internal"]) {
+    cpSync(join(root, entry), join(actionPath, entry), { recursive: true });
+  }
+  for (const file of ["package.json", "go.mod", "go.sum"]) {
+    cpSync(join(root, file), join(actionPath, file));
+  }
+  rmSync(join(actionPath, "dist", "bin"), { recursive: true, force: true });
+
+  const workflowDir = join(workspace, ".github", "workflows");
+  mkdirSync(workflowDir, { recursive: true });
+  writeFileSync(
+    join(workflowDir, "ci.yml"),
+    [
+      "name: Fallback Consumer",
+      "on:",
+      "  push:",
+      "    branches: [main]",
+      "permissions:",
+      "  contents: read",
+      "jobs:",
+      "  scan:",
+      "    permissions:",
+      "      contents: read",
+      "    runs-on: ubuntu-24.04",
+      "",
+    ].join("\n"),
+  );
+
+  const outputFile = join(workspace, "github-output.txt");
+  const summaryFile = join(workspace, "github-summary.md");
+  writeFileSync(outputFile, "");
+  writeFileSync(summaryFile, "");
+  const env = {
+    ...process.env,
+    GITHUB_WORKSPACE: workspace,
+    GITHUB_ACTION_PATH: actionPath,
+    GITHUB_OUTPUT: outputFile,
+    GITHUB_STEP_SUMMARY: summaryFile,
+    GITHUB_REPOSITORY: "oaslananka-lab/test",
+    GITHUB_SHA: "0000000000000000000000000000000000000000",
+    GITHUB_REF: "refs/heads/main",
+    INPUT_PATH: ".",
+    INPUT_MODE: "warn",
+    "INPUT_FAIL-ON": "high",
+    "INPUT_ALLOW-OUTSIDE-WORKSPACE": "false",
+    INPUT_SARIF: "true",
+    INPUT_JSON: "true",
+    INPUT_MARKDOWN: "false",
+    "INPUT_UPLOAD-SARIF": "false",
+  };
+
+  const result = spawnSync(process.execPath, [join(actionPath, "dist", "index.js")], {
+    cwd: workspace,
+    env,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  if (result.status !== 0) {
+    fail(
+      [
+        `fallback build smoke failed with exit ${result.status}`,
+        result.stderr.trim(),
+        result.stdout.trim(),
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    );
+  }
+  const builtBinary = join(
+    workspace,
+    "cifence-results",
+    process.platform === "win32" ? "cifence.exe" : "cifence",
+  );
+  if (!existsSync(builtBinary) || statSync(builtBinary).size <= 0) {
+    fail("fallback build did not produce a CLI binary");
   }
 }
 

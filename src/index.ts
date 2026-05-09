@@ -16,6 +16,7 @@ type CIFenceReport = {
 };
 
 const outputDirectory = "cifence-results";
+const versionLDFlag = "github.com/oaslananka/cifence/internal/analyzer.Version";
 
 async function main(): Promise<void> {
   const workspace = path.resolve(process.env.GITHUB_WORKSPACE || process.cwd());
@@ -137,16 +138,44 @@ async function resolveCIFenceCLI(
   }
 
   const builtBinary = path.join(resultDirectory, binaryName);
-  const buildArgs = ["build", "-trimpath", "-o", builtBinary, "./cmd/cifence"];
+  const version = await readActionVersion(actionPath);
+  const ldflags = `-s -w -buildid= -X ${versionLDFlag}=${version}`;
+  const buildArgs = [
+    "build",
+    "-trimpath",
+    "-buildvcs=false",
+    `-ldflags=${ldflags}`,
+    "-o",
+    builtBinary,
+    "./cmd/cifence",
+  ];
   const build = await runBuildFallback("go", buildArgs, {
     cwd: actionPath,
+    env: {
+      ...process.env,
+      CGO_ENABLED: "0",
+    },
     ignoreReturnCode: true,
     silent: true,
   });
   if (build.exitCode !== 0) {
-    throw new Error(buildFailureDetails(actionPath, bundledBinary, builtBinary, build));
+    throw new Error(buildFailureDetails(actionPath, bundledBinary, builtBinary, buildArgs, build));
   }
   return { command: builtBinary, args: [] };
+}
+
+async function readActionVersion(actionPath: string): Promise<string> {
+  const fallback = "0.0.0-dev";
+  try {
+    const packageJson = JSON.parse(
+      await readFile(path.join(actionPath, "package.json"), "utf8"),
+    ) as { version?: unknown };
+    return typeof packageJson.version === "string" && packageJson.version.trim() !== ""
+      ? packageJson.version
+      : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function resolveActionRoot(): string {
@@ -182,6 +211,7 @@ function buildFailureDetails(
   actionPath: string,
   bundledBinary: string,
   builtBinary: string,
+  buildArgs: string[],
   build: { exitCode: number; stdout: string; stderr: string },
 ): string {
   const details = [
@@ -189,8 +219,9 @@ function buildFailureDetails(
     `actionPath: ${actionPath}`,
     `bundledBinary: ${bundledBinary}`,
     `builtBinary: ${builtBinary}`,
-    "command: go build -trimpath -o <builtBinary> ./cmd/cifence",
+    `command: go ${buildArgs.map((arg) => (arg === builtBinary ? "<builtBinary>" : arg)).join(" ")}`,
     `buildExitCode: ${build.exitCode}`,
+    "CGO_ENABLED: 0",
     process.env.PATH ? `PATH: ${process.env.PATH}` : "PATH: <empty>",
     build.stderr.trim() ? `stderr:\n${build.stderr.trim()}` : "",
     build.stdout.trim() ? `stdout:\n${build.stdout.trim()}` : "",
