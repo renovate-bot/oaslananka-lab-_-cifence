@@ -71,6 +71,14 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
               path
               line
               createdAt
+              pullRequestReview {
+                state
+                submittedAt
+                author {
+                  login
+                  __typename
+                }
+              }
             }
           }
         }
@@ -115,6 +123,14 @@ query($id: ID!, $after: String) {
           path
           line
           createdAt
+          pullRequestReview {
+            state
+            submittedAt
+            author {
+              login
+              __typename
+            }
+          }
         }
       }
     }
@@ -215,14 +231,19 @@ function blockingThread(thread, botApprovals) {
   if (humanComment) {
     return summaryItem(thread.id, humanComment, "human unresolved comment");
   }
-  const botComment = comments.find((comment) => actionableBotComment(comment.body ?? ""));
-  if (botComment) {
-    if (hasLaterBotApproval(botComment, botApprovals)) {
-      return null;
+  const botComments = comments.filter(
+    (comment) => actionableBotComment(comment.body ?? "") && blockingBotComment(comment),
+  );
+  for (const botComment of botComments) {
+    if (!hasLaterBotApproval(botComment, botApprovals)) {
+      return summaryItem(thread.id, botComment, "actionable bot comment");
     }
-    return summaryItem(thread.id, botComment, "actionable bot comment");
   }
   return null;
+}
+
+function blockingBotComment(comment) {
+  return comment.pullRequestReview?.state === "CHANGES_REQUESTED";
 }
 
 function hasLaterBotApproval(comment, botApprovals) {

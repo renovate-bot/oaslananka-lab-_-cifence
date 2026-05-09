@@ -300,6 +300,37 @@ jobs:
 	assertRulePresent(t, findings, "CF-INJ-003")
 }
 
+func TestUntrustedContextInSequenceArgumentsAndRestoreKeys(t *testing.T) {
+	doc := parseYAML(t, `
+name: Sequence sinks
+on:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: ./local-action
+        with:
+          args:
+            - --message
+            - ${{ github.event.pull_request.body }}
+      - uses: actions/cache@0123456789abcdef0123456789abcdef01234567
+        with:
+          path: .cache
+          key: stable
+          restore-keys:
+            - node-
+            - pr-${{ github.head_ref }}
+`)
+	findings := Analyze(doc)
+	assertRulePresent(t, findings, "CF-INJ-003")
+	assertRulePresent(t, findings, "CF-CACHE-001")
+}
+
 func TestEnvironmentFileInjectionIsReported(t *testing.T) {
 	doc := parseYAML(t, `
 name: Environment file injection
@@ -342,6 +373,28 @@ jobs:
 	assertRulePresent(t, findings, "CF-RUNNER-001")
 }
 
+func TestWorkflowRunArtifactRelativePathArgumentIsNotExecution(t *testing.T) {
+	doc := parseYAML(t, `
+name: Workflow run boundary
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  replay:
+    permissions:
+      contents: read
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/download-artifact@0123456789abcdef0123456789abcdef01234567
+      - run: echo "artifact path is ./dist"
+`)
+	findings := Analyze(doc)
+	assertRuleAbsent(t, findings, "CF-ART-001")
+}
+
 func assertRulePresent(t *testing.T, findings []githubactions.Finding, ruleID string) {
 	t.Helper()
 	for _, finding := range findings {
@@ -350,6 +403,15 @@ func assertRulePresent(t *testing.T, findings []githubactions.Finding, ruleID st
 		}
 	}
 	t.Fatalf("expected %s in %#v", ruleID, findings)
+}
+
+func assertRuleAbsent(t *testing.T, findings []githubactions.Finding, ruleID string) {
+	t.Helper()
+	for _, finding := range findings {
+		if finding.RuleID == ruleID {
+			t.Fatalf("unexpected %s in %#v", ruleID, findings)
+		}
+	}
 }
 
 func parseYAML(t *testing.T, content string) parser.Document {

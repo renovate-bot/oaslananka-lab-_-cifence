@@ -12,6 +12,7 @@ import (
 )
 
 var fullSHA = regexp.MustCompile(`^[A-Fa-f0-9]{40}$`)
+var executesRelativePath = regexp.MustCompile(`(?m)(^|[;&|]\s*)(\./|\.\./)\S+`)
 
 var mutableRefs = map[string]struct{}{
 	"main":    {},
@@ -323,18 +324,23 @@ func injectionFindings(file string, root *yaml.Node) []githubactions.Finding {
 		if _, withNode, ok := lookup(step, "with"); ok {
 			for _, key := range []string{"args", "arguments", "command", "cmd", "entrypoint"} {
 				if _, valueNode, ok := lookup(asMapping(withNode), key); ok {
-					if value, ok := scalarString(valueNode); ok && containsUntrustedContext(value) {
-						findings = append(findings, newFinding("CF-INJ-003", file, valueNode, "Untrusted context is passed into action command arguments.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+					for _, value := range scalarLeafValues(valueNode) {
+						if containsUntrustedContext(value.Value) {
+							findings = append(findings, newFinding("CF-INJ-003", file, value.Node, "Untrusted context is passed into action command arguments.", firstUntrustedContext(value.Value), "jobs.*.steps[].with."+key))
+						}
 					}
 				}
 			}
 			if isCacheOrArtifactAction(usesValue) {
 				for _, key := range []string{"key", "restore-keys", "name"} {
 					if _, valueNode, ok := lookup(asMapping(withNode), key); ok {
-						if value, ok := scalarString(valueNode); ok && containsUntrustedContext(value) {
-							findings = append(findings, newFinding("CF-INJ-003", file, valueNode, "Untrusted context is used in a cache key or artifact name.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+						for _, value := range scalarLeafValues(valueNode) {
+							if !containsUntrustedContext(value.Value) {
+								continue
+							}
+							findings = append(findings, newFinding("CF-INJ-003", file, value.Node, "Untrusted context is used in a cache key or artifact name.", firstUntrustedContext(value.Value), "jobs.*.steps[].with."+key))
 							if isCacheAction(usesValue) && (key == "key" || key == "restore-keys") {
-								findings = append(findings, newFinding("CF-CACHE-001", file, valueNode, "Cache key material is derived from attacker-controlled workflow context.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+								findings = append(findings, newFinding("CF-CACHE-001", file, value.Node, "Cache key material is derived from attacker-controlled workflow context.", firstUntrustedContext(value.Value), "jobs.*.steps[].with."+key))
 							}
 						}
 					}
@@ -434,8 +440,10 @@ func pullRequestTargetFindings(file string, root *yaml.Node) []githubactions.Fin
 			if _, withNode, ok := lookup(step, "with"); ok {
 				for _, key := range []string{"key", "restore-keys", "name"} {
 					if _, valueNode, ok := lookup(asMapping(withNode), key); ok {
-						if value, ok := scalarString(valueNode); ok && containsUntrustedContext(value) {
-							findings = append(findings, newFinding("CF-TRG-005", file, valueNode, "pull_request_target cache or artifact data uses PR-controlled context.", firstUntrustedContext(value), "jobs.*.steps[].with."+key))
+						for _, value := range scalarLeafValues(valueNode) {
+							if containsUntrustedContext(value.Value) {
+								findings = append(findings, newFinding("CF-TRG-005", file, value.Node, "pull_request_target cache or artifact data uses PR-controlled context.", firstUntrustedContext(value.Value), "jobs.*.steps[].with."+key))
+							}
 						}
 					}
 				}
@@ -764,6 +772,28 @@ func scalarValues(node *yaml.Node) []string {
 	return values
 }
 
+type scalarLeafValue struct {
+	Node  *yaml.Node
+	Value string
+}
+
+func scalarLeafValues(node *yaml.Node) []scalarLeafValue {
+	if value, ok := scalarString(node); ok {
+		return []scalarLeafValue{{Node: node, Value: value}}
+	}
+	sequence := asSequence(node)
+	if sequence == nil {
+		return nil
+	}
+	values := make([]scalarLeafValue, 0, len(sequence.Content))
+	for _, item := range sequence.Content {
+		if value, ok := scalarString(item); ok {
+			values = append(values, scalarLeafValue{Node: item, Value: value})
+		}
+	}
+	return values
+}
+
 func isTrustedBranch(branch string) bool {
 	branch = strings.ToLower(strings.TrimSpace(branch))
 	return branch == "main" || branch == "master" || strings.HasPrefix(branch, "release/")
@@ -941,10 +971,13 @@ func jobExecutesDownloadedContent(jobMap *yaml.Node) bool {
 		}
 		runValue, _ := scalarString(runNode)
 		lower := strings.ToLower(runValue)
-		for _, pattern := range []string{"bash ", "sh ", "source ", "./", "python ", "node ", "chmod +x"} {
+		for _, pattern := range []string{"bash ", "sh ", "source ", "python ", "node ", "chmod +x"} {
 			if strings.Contains(lower, pattern) {
 				return true
 			}
+		}
+		if executesRelativePath.MatchString(lower) {
+			return true
 		}
 	}
 	return false
