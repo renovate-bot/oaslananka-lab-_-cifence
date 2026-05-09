@@ -125,7 +125,7 @@ func TestExpiredSuppressionReportsFinding(t *testing.T) {
 		{
 			Rule:     "CF-PERM-002",
 			Path:     "missing-permissions.yml",
-			YAMLPath: "",
+			YAMLPath: stringPtr(""),
 			Evidence: "workflow permissions missing",
 			Reason:   "migration window",
 			Expires:  "2026-01-01",
@@ -133,7 +133,7 @@ func TestExpiredSuppressionReportsFinding(t *testing.T) {
 		{
 			Rule:     "CF-PERM-002",
 			Path:     "missing-permissions.yml",
-			YAMLPath: "",
+			YAMLPath: stringPtr(""),
 			Evidence: "job \"test\" permissions missing",
 			Reason:   "migration window",
 			Expires:  "2026-01-01",
@@ -163,6 +163,10 @@ func TestExpiredSuppressionReportsFinding(t *testing.T) {
 	if original {
 		t.Fatal("expired suppression finding should replace the original suppressed finding")
 	}
+}
+
+func stringPtr(value string) *string {
+	return &value
 }
 
 func trimTrailingNewline(value []byte) []byte {

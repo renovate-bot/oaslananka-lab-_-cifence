@@ -923,6 +923,7 @@ func jobExecutesDownloadedContent(jobMap *yaml.Node) bool {
 		}
 		runValue, _ := scalarString(runNode)
 		lower := strings.ToLower(runValue)
+		// This intentionally conservative pattern list catches common execution paths after artifact download.
 		for _, pattern := range []string{"bash ", "sh ", "source ", "./", "python ", "node ", "chmod +x"} {
 			if strings.Contains(lower, pattern) {
 				return true

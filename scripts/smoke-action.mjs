@@ -230,6 +230,12 @@ function runFallbackBuildSmoke({ workspace, actionPath }) {
   if (!existsSync(builtBinary) || statSync(builtBinary).size <= 0) {
     fail("fallback build did not produce a CLI binary");
   }
+  for (const report of ["cifence.json", "cifence.sarif"]) {
+    const reportPath = join(workspace, "cifence-results", report);
+    if (!existsSync(reportPath) || statSync(reportPath).size <= 0) {
+      fail(`fallback build smoke did not write ${report}`);
+    }
+  }
 }
 
 function run(command, args, options) {

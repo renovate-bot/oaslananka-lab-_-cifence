@@ -9,7 +9,7 @@ import (
 
 func TestValidateRequiresSuppressionReasonAndExpiry(t *testing.T) {
 	cfg := Default()
-	cfg.Suppressions = []Suppression{{Rule: "CF-ACT-001", Path: ".github/workflows/ci.yml", YAMLPath: "jobs.test.steps[0].uses", Evidence: "actions/checkout@v6"}}
+	cfg.Suppressions = []Suppression{{Rule: "CF-ACT-001", Path: ".github/workflows/ci.yml", YAMLPath: stringPtr("jobs.test.steps[0].uses"), Evidence: "actions/checkout@v6"}}
 	if err := Validate(cfg); err == nil {
 		t.Fatal("expected invalid suppression to fail validation")
 	}
@@ -41,7 +41,7 @@ func TestSuppressionRequiresExactYAMLPathAndEvidence(t *testing.T) {
 	cfg.Suppressions = []Suppression{{
 		Rule:     "CF-PERM-006",
 		Path:     ".github/workflows/release.yml",
-		YAMLPath: "jobs.release.permissions",
+		YAMLPath: stringPtr("jobs.release.permissions"),
 		Evidence: "job \"release\" third-party action with write token",
 		Reason:   "release boundary",
 		Expires:  "2026-12-31",
@@ -64,4 +64,23 @@ func TestSuppressionRequiresExactYAMLPathAndEvidence(t *testing.T) {
 	if _, ok, expired := cfg.SuppressionFor(finding, time.Date(2026, 5, 10, 0, 0, 0, 0, time.UTC)); !ok || expired {
 		t.Fatalf("expected exact suppression match, ok=%v expired=%v", ok, expired)
 	}
+}
+
+func TestValidateAllowsExplicitEmptyYAMLPathForFileLevelSuppression(t *testing.T) {
+	cfg := Default()
+	cfg.Suppressions = []Suppression{{
+		Rule:     "CF-PERM-002",
+		Path:     ".github/workflows/ci.yml",
+		YAMLPath: stringPtr(""),
+		Evidence: "workflow permissions missing",
+		Reason:   "migration",
+		Expires:  "2026-12-31",
+	}}
+	if err := Validate(cfg); err != nil {
+		t.Fatalf("expected explicit empty yaml_path to be valid for file-level finding: %v", err)
+	}
+}
+
+func stringPtr(value string) *string {
+	return &value
 }

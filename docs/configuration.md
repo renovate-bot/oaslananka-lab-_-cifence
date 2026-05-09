@@ -62,6 +62,7 @@ Suppressions require:
 Expired suppressions are reported as `CF-SUP-001` findings. Active suppressions remain visible in JSON with suppression metadata and do not fail enforce mode.
 
 Rule and path alone are intentionally insufficient. A suppression must match the exact finding fingerprint, or the exact YAML path and evidence, so a later finding in the same file with the same rule is still reported as new.
+Use `yaml_path: ""` for file-level findings that do not have a YAML node path.
 
 ## Baselines
 

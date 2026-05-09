@@ -70,13 +70,18 @@ paths:
 suppressions:
   - rule: CF-ACT-001
     path: .github/workflows/legacy.yml
+    fingerprint: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    reason: "Vendor action has no immutable release yet"
+    expires: "2026-07-01"
+  - rule: CF-ACT-001
+    path: .github/workflows/legacy.yml
     yaml_path: jobs.scan.steps[0].uses
     evidence: vendor/action@v1
     reason: "Vendor action has no immutable release yet"
     expires: "2026-07-01"
 ```
 
-Suppressions require a precise match key plus `reason` and `expires`. Expired suppressions are reported as findings. See `docs/configuration.md` and `schemas/config.schema.json`.
+Suppressions require a precise match key plus `reason` and `expires`. Use `fingerprint` for stable finding-level matching, or use `yaml_path` + `evidence` for exact location-based matching. File-level findings use `yaml_path: ""`. Expired suppressions are reported as findings. See `docs/configuration.md` and `schemas/config.schema.json`.
 
 ## Baselines
 

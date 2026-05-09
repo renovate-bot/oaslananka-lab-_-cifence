@@ -39,13 +39,13 @@ type PathsConfig struct {
 }
 
 type Suppression struct {
-	Rule        string `yaml:"rule" json:"rule"`
-	Path        string `yaml:"path" json:"path"`
-	Fingerprint string `yaml:"fingerprint,omitempty" json:"fingerprint,omitempty"`
-	YAMLPath    string `yaml:"yaml_path,omitempty" json:"yaml_path,omitempty"`
-	Evidence    string `yaml:"evidence,omitempty" json:"evidence,omitempty"`
-	Reason      string `yaml:"reason" json:"reason"`
-	Expires     string `yaml:"expires" json:"expires"`
+	Rule        string  `yaml:"rule" json:"rule"`
+	Path        string  `yaml:"path" json:"path"`
+	Fingerprint string  `yaml:"fingerprint,omitempty" json:"fingerprint,omitempty"`
+	YAMLPath    *string `yaml:"yaml_path,omitempty" json:"yaml_path,omitempty"`
+	Evidence    string  `yaml:"evidence,omitempty" json:"evidence,omitempty"`
+	Reason      string  `yaml:"reason" json:"reason"`
+	Expires     string  `yaml:"expires" json:"expires"`
 }
 
 func Default() Config {
@@ -114,7 +114,7 @@ func Validate(cfg Config) error {
 		if suppression.Path == "" {
 			validationErrs = append(validationErrs, fmt.Errorf("suppression %d path is required", index))
 		}
-		if suppression.Fingerprint == "" && (suppression.YAMLPath == "" || suppression.Evidence == "") {
+		if suppression.Fingerprint == "" && (suppression.YAMLPath == nil || suppression.Evidence == "") {
 			validationErrs = append(validationErrs, fmt.Errorf("suppression %d requires fingerprint or both yaml_path and evidence", index))
 		}
 		if suppression.Reason == "" {
@@ -197,7 +197,10 @@ func suppressionMatches(suppression Suppression, finding githubactions.Finding) 
 	if suppression.Fingerprint != "" {
 		return suppression.Fingerprint == finding.Fingerprint
 	}
-	return suppression.YAMLPath == finding.YAMLPath && suppression.Evidence == finding.Evidence
+	if suppression.YAMLPath == nil {
+		return false
+	}
+	return *suppression.YAMLPath == finding.YAMLPath && suppression.Evidence == finding.Evidence
 }
 
 func findDefault(root string) (string, error) {
