@@ -64,7 +64,7 @@ func TestSARIFExcludesSuppressedAndExistingBaselineFindings(t *testing.T) {
 			File:          ".github/workflows/ci.yml",
 			Line:          3,
 			Column:        1,
-			BaselineState: "existing",
+			BaselineState: githubactions.BaselineStateExisting,
 		},
 	}))
 	if err != nil {

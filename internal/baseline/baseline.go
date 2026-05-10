@@ -52,9 +52,9 @@ func Apply(findings []githubactions.Finding, current Baseline) []githubactions.F
 	out := make([]githubactions.Finding, 0, len(findings))
 	for _, finding := range findings {
 		if _, ok := known[finding.Fingerprint]; ok {
-			finding.BaselineState = "existing"
+			finding.BaselineState = githubactions.BaselineStateExisting
 		} else {
-			finding.BaselineState = "new"
+			finding.BaselineState = githubactions.BaselineStateNew
 		}
 		out = append(out, finding)
 	}

@@ -9,6 +9,11 @@ const (
 	SeverityLow      Severity = "low"
 )
 
+const (
+	BaselineStateExisting = "existing"
+	BaselineStateNew      = "new"
+)
+
 type RuleDefinition struct {
 	ID          string   `json:"id"`
 	Title       string   `json:"title"`
@@ -63,10 +68,10 @@ func NewReport(version string, filesScanned int, findings []Finding) Report {
 		if finding.Suppressed {
 			summary.Suppressed++
 		}
-		if finding.BaselineState == "existing" {
+		if finding.BaselineState == BaselineStateExisting {
 			summary.Baselined++
 		}
-		if finding.BaselineState == "new" {
+		if finding.BaselineState == BaselineStateNew {
 			summary.New++
 		}
 		switch finding.Severity {

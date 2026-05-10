@@ -101,7 +101,7 @@ func EnforceFails(report githubactions.Report) bool {
 func EnforceFailsAt(report githubactions.Report, threshold githubactions.Severity) bool {
 	thresholdRank := githubactions.SeverityRank(threshold)
 	for _, finding := range report.Findings {
-		if finding.Suppressed || finding.BaselineState == "existing" {
+		if finding.Suppressed || finding.BaselineState == githubactions.BaselineStateExisting {
 			continue
 		}
 		if githubactions.SeverityRank(finding.Severity) >= thresholdRank {
