@@ -2,6 +2,18 @@
 
 All notable changes after the initial 0.1.0 bootstrap are managed by release-please.
 
+## [0.2.1](https://github.com/oaslananka-lab/cifence/compare/v0.2.0...v0.2.1) (2026-05-10)
+
+
+### Bug Fixes
+
+* **action:** align fallback CLI build with release flags ([25924f2](https://github.com/oaslananka-lab/cifence/commit/25924f23933847e5124fa66d67b3cccb52293586))
+* **ci:** stabilize fuzz and review-thread gates ([09682fd](https://github.com/oaslananka-lab/cifence/commit/09682fd2153c68d4455f47e2ced8386243828ea1))
+* **config:** normalize suppression evidence ([f53cb9a](https://github.com/oaslananka-lab/cifence/commit/f53cb9abe2594abb34a6e6524ecf30ebf39018a3))
+* **config:** support explicit file-level suppressions ([8bdd112](https://github.com/oaslananka-lab/cifence/commit/8bdd1129562ae9b4c18eab932ba25dd98f7466b9))
+* **rules:** handle sequence workflow sinks ([a09371a](https://github.com/oaslananka-lab/cifence/commit/a09371a79fa9a814de24f230864a259a70e1c294))
+* **rules:** harden workflow analyzer coverage ([358a17d](https://github.com/oaslananka-lab/cifence/commit/358a17d27a3e488c94730c1a919f9f0f6456a6ff))
+
 ## [0.2.0](https://github.com/oaslananka-lab/cifence/compare/v0.1.1...v0.2.0) (2026-05-09)
 
 
