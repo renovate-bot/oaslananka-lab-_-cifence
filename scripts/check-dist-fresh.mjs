@@ -1,8 +1,15 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 
-run("pnpm", ["run", "action:build"]);
-run("git", ["diff", "--exit-code", "--", "dist/index.js", "dist/bin"]);
+run("pnpm", ["run", "build"]);
+run("git", ["diff", "--exit-code", "--", "dist/index.js"]);
+
+if (process.platform === "linux") {
+  run("pnpm", ["run", "binaries"]);
+  run("git", ["diff", "--exit-code", "--", "dist/bin"]);
+} else {
+  process.stdout.write("dist/bin freshness is checked on linux\n");
+}
 
 process.stdout.write("dist fresh\n");
 
