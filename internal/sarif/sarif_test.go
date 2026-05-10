@@ -37,3 +37,59 @@ func TestSARIFGeneration(t *testing.T) {
 		t.Fatalf("unexpected tool version: %#v", driver["semanticVersion"])
 	}
 }
+
+func TestSARIFExcludesSuppressedAndExistingBaselineFindings(t *testing.T) {
+	content, err := JSON(githubactions.NewReport("0.1.0", 1, []githubactions.Finding{
+		{
+			RuleID:   "CF-ACT-001",
+			Severity: githubactions.SeverityMedium,
+			Message:  "active",
+			File:     ".github/workflows/ci.yml",
+			Line:     1,
+			Column:   1,
+		},
+		{
+			RuleID:     "CF-ACT-001",
+			Severity:   githubactions.SeverityMedium,
+			Message:    "suppressed",
+			File:       ".github/workflows/ci.yml",
+			Line:       2,
+			Column:     1,
+			Suppressed: true,
+		},
+		{
+			RuleID:        "CF-ACT-001",
+			Severity:      githubactions.SeverityMedium,
+			Message:       "baselined",
+			File:          ".github/workflows/ci.yml",
+			Line:          3,
+			Column:        1,
+			BaselineState: "existing",
+		},
+	}))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var parsed struct {
+		Runs []struct {
+			Results []struct {
+				Message struct {
+					Text string `json:"text"`
+				} `json:"message"`
+			} `json:"results"`
+		} `json:"runs"`
+	}
+	if err := json.Unmarshal(content, &parsed); err != nil {
+		t.Fatal(err)
+	}
+	if len(parsed.Runs) != 1 {
+		t.Fatalf("unexpected run count: %d", len(parsed.Runs))
+	}
+	if len(parsed.Runs[0].Results) != 1 {
+		t.Fatalf("expected one active SARIF result, got %d", len(parsed.Runs[0].Results))
+	}
+	if parsed.Runs[0].Results[0].Message.Text != "active" {
+		t.Fatalf("unexpected result message: %q", parsed.Runs[0].Results[0].Message.Text)
+	}
+}

@@ -154,6 +154,9 @@ func sarifResults(findings []githubactions.Finding) []result {
 		ruleIndexes[definition.ID] = index
 	}
 	for _, finding := range findings {
+		if finding.Suppressed || finding.BaselineState == "existing" {
+			continue
+		}
 		ruleIndex := ruleIndexes[finding.RuleID]
 		out = append(out, result{
 			RuleID:    finding.RuleID,
