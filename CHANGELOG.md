@@ -2,6 +2,14 @@
 
 All notable changes after the initial 0.1.0 bootstrap are managed by release-please.
 
+## [0.2.2](https://github.com/oaslananka-lab/cifence/compare/v0.2.1...v0.2.2) (2026-05-10)
+
+
+### Bug Fixes
+
+* **build:** use linux canonical binary freshness ([b9d2bf0](https://github.com/oaslananka-lab/cifence/commit/b9d2bf01aa3e7796cefcd96608e46a6fd24d2339))
+* **sarif:** exclude suppressed findings from uploads ([4e60e59](https://github.com/oaslananka-lab/cifence/commit/4e60e5991e2fa62b36a8c0d84942dc243f1e652f))
+
 ## [0.2.1](https://github.com/oaslananka-lab/cifence/compare/v0.2.0...v0.2.1) (2026-05-10)
 
 
